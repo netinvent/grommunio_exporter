@@ -92,7 +92,7 @@ class GrommunioExporter:
                 logger.debug("Trace:", exc_info=True)
         else:
             logger.error(f"Could not execute {cmd}: Failed with error code {exit_code}: {result}")
-            return mailboxes
+        return mailboxes
         
 
     def get_mailbox_properties(self, mailbox: str):
@@ -105,6 +105,9 @@ class GrommunioExporter:
         basically cmd is 
         grommunio-admin exmdb user@domain.tld store get |awk ' BEGIN { printf"[" } {if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf"]\n"}'
         """
+
+        mailbox_properties = {}
+
         awk_cmd = """awk ' BEGIN { printf"[" } {if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf"]\n"}'"""
         cmd = f'{self.cli_binary} exmdb {mailbox} store get | {awk_cmd}'
         exit_code, result = command_runner(cmd, timeout=60, shell=True)
@@ -114,8 +117,13 @@ class GrommunioExporter:
             except:
                 print("oh shi")
                 print(result)
+        else:
+            logger.error(f"Could not execute {cmd}: Failed with error code {exit_code}: {result}")
+        return mailbox_properties
+
     
 if __name__ == "__main__":
+    print("Running test API calls")
     api = GrommunioExporter(cli_binary="/usr/sbin/grommunio-admin", hostname="test-script")
     api.get_mailboxes()
     api.get_mailbox_properties()
