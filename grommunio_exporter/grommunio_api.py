@@ -14,11 +14,10 @@ __build__ = "2024110501"
 from ofunctions.misc import fn_name
 from logging import getLogger
 from pathlib import Path
-import time
-import datetime
 import json
 from prometheus_client import Summary, Gauge, Enum
 from command_runner import command_runner
+from ofunctions.misc import BytesConverter
 
 # from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily, REGISTRY
 
@@ -49,11 +48,46 @@ class GrommunioExporter:
         )
 
 
+        self.gauge_grommunio_mailbox_messagesize = Gauge(
+            "grommunio_mailbox_messagesize",
+            "Mailbox current size",
+            ["hostname", "domain", "username"]
+        )
+
+        self.gauge_grommunio_mailbox_storage_quota_limit = Gauge(
+            "grommunio_mailbox_storage_quota_limit",
+            "Mailbox storage quota limit",
+            ["hostname", "domain", "username"]
+        )
+
+        self.gauge_grommunio_mailbox_prohibit_reveive_quota = Gauge(
+            "grommunio_mailbox_storage_quota_limit",
+            "Mailbox prohibit receive quota",
+            ["hostname", "domain", "username"]
+        )
+
+        self.gauge_grommunio_mailbox_prohibit_send_quota = Gauge(
+            "grommunio_mailbox_prohibit_send_quota",
+            "Mailbox prohibit send quota",
+            ["hostname", "domain", "username"]
+        )
+
+        self.gauge_grommunio_mailbox_creation_time = Gauge(
+            "grommunio_mailbox_creation_time",
+            "Mailbox creation time",
+            ["hostname", "domain", "username"]
+        )
+
         # Create a metric to track time spent and requests made.
         REQUEST_TIME = Summary(
             "request_processing_seconds", "Time spent processing request"
         )
 
+    def _get_domain_from_username(self, username: str):
+        if "@" in username:
+            return username.split('@')[2]
+        return "no_domain"
+    
     def get_mailboxes(self):
         """
         Used to fetch mailboxes
@@ -74,15 +108,12 @@ class GrommunioExporter:
                 mailboxes = json.loads(result)
                 for mailbox in mailboxes:
                     try:
-                        if "@" in mailbox["username"]:
-                            user, domain = mailbox["username"].split('@')
-                        else:
-                            user = mailbox["username"]
-                            domain = "No Domain"
+                        username = mailbox["username"]
+                        domain = self._get_domain_from_username(username)
                         try:
-                            per_domain_count[domain].append(user)
+                            per_domain_count[domain].append(username)
                         except (KeyError, AttributeError):
-                            per_domain_count[domain] = [user]
+                            per_domain_count[domain] = [username]
                     except (ValueError, TypeError, KeyError, IndexError) as exc:
                         logger.error(f"Cannot decode mailbox data: {exc}")
                         logger.debug("Trace:", exc_info=True)
@@ -100,7 +131,7 @@ class GrommunioExporter:
         return mailboxes
         
 
-    def get_mailbox_properties(self, mailbox: str):
+    def get_mailbox_properties(self, username: str):
         """
         Get size of mailbox
 
@@ -132,6 +163,7 @@ class GrommunioExporter:
         """
 
         mailbox_properties = {}
+        domain = self._get_domain_from_username(username)
 
         awk_cmd = r"""awk ' BEGIN { printf"[" } {if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf"]\n"}'"""
         cmd = f'{self.cli_binary} exmdb {mailbox} store get | {awk_cmd}'
@@ -142,11 +174,32 @@ class GrommunioExporter:
                 for entry in mbox_props_list:
                     # Get first key value pair (since we only have one)
                     mailbox_properties[list(entry.keys())[0]] = list(entry.values())[0]
+
+
             except json.JSONDecodeError as exc:
                 logger.error(f"Cannot decode JSON: {exc}")
                 logger.debug("Trace:", exc_info=True)
         else:
             logger.error(f"Could not execute {cmd}: Failed with error code {exit_code}: {result}")
+
+
+        labels = (self.hostname, domain, username)
+        for key, value in mailbox_properties:
+            if key == "messagesizeextended":
+                self.gauge_grommunio_mailbox_messagesize.labels(labels).set(value)
+            elif key == "creationtime":
+                self.gauge_grommunio_mailbox_creation_time.labels(labels).set(value)
+            elif key == "storagequotalimit":
+                # Value given in KB iec, we need to convert it to bytes
+                value = BytesConverter(f"{value} KiB")
+                self.gauge_grommunio_mailbox_storage_quota_limit.labels(labels).set(value)
+            elif key == "prohibitreceivequota":
+                value = BytesConverter(f"{value} KiB")
+                self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(labels).set(value)
+            elif key == "prohibitsendquota":
+                value = BytesConverter(f"{value} KiB")
+                self.gauge_grommunio_mailbox_prohibit_send_quota.labels(labels).set(value)
+
         return mailbox_properties
 
     
