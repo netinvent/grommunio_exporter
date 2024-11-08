@@ -95,18 +95,24 @@ class GrommunioExporter:
             return mailboxes
         
 
-    def get_mailbox_size(self, mailbox: str):
+    def get_mailbox_properties(self, mailbox: str):
         """
         Get size of mailbox
+        
+        Only half of the grommunio-admin-api has --format json, so we need to come up with a little awk situation here
+        We could also improve this by using regex, but let's be honest, it'll be easier for grommunio to implement --format here
         """
-        cmd = f"{self.cli_binary} exmdb {mailbox} store get"
-        exit_code, result = command_runner(cmd, timeout=60)
+        awk_cmd = """awk ' BEGIN { printf"[" } {if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf"]\n"}'"""
+        cmd = f'{self.cli_binary} exmdb {mailbox} store get | {awk_cmd}'
+        exit_code, result = command_runner(cmd, timeout=60, shell=True)
         if exit_code == 0:
             try:
-                pass #WIP
+                print(result)
             except:
-                pass # WIP
+                print("oh shi")
+                print(result)
     
 if __name__ == "__main__":
     api = GrommunioExporter(cli_binary="/usr/sbin/grommunio-admin")
     api.get_mailboxes()
+    api.get_mailbox_properties()
