@@ -24,7 +24,7 @@ from command_runner import command_runner
 from grommunio_exporter.__debug__ import _DEBUG
 
 
-logger = getLogger(_DEBUG)
+logger = getLogger()
 
 
 class GrommunioExporter:
