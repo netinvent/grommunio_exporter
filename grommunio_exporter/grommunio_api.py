@@ -82,7 +82,6 @@ class GrommunioExporter:
                         logger.error(f"Cannot decode mailbox data: {exc}")
                         logger.debug("Trace:", exc_info=True)
                 for domain, users in per_domain_count.items():
-                    print(domain, len(users))
                     self.gauge_grommunio_mailbox_count.labels(self.hostname, domain).set(len(users))
             
             except json.JSONDecodeError as exc:
