@@ -164,6 +164,8 @@ class GrommunioExporter:
 
         mailbox_properties = {}
         domain = self._get_domain_from_username(username)
+        if domain == "no_domain":
+            return mailbox_properties
 
         awk_cmd = r"""awk ' BEGIN { printf"[" } {if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf"]\n"}'"""
         cmd = f'{self.cli_binary} exmdb {username} store get | {awk_cmd}'
