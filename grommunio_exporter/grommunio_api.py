@@ -12,7 +12,7 @@ __license__ = "GPL-3.0-only"
 __build__ = "2024110501"
 
 from ofunctions.misc import fn_name
-from logging import getLogger
+import logging
 from pathlib import Path
 import json
 from prometheus_client import Summary, Gauge, Enum
@@ -24,7 +24,7 @@ from ofunctions.misc import BytesConverter
 from grommunio_exporter.__debug__ import _DEBUG
 
 
-logger = getLogger()
+logger = logging.getLogger()
 
 
 class GrommunioExporter:
@@ -172,10 +172,11 @@ class GrommunioExporter:
             try:
                 mbox_props_list = json.loads(result)
                 for entry in mbox_props_list:
-                    # Get first key value pair (since we only have one)
-                    mailbox_properties[list(entry.keys())[0]] = list(entry.values())[0]
-
-
+                    try:
+                        # Get first key value pair (since we only have one)
+                        mailbox_properties[list(entry.keys())[0]] = list(entry.values())[0]
+                    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+                        logger.errorf(f"Cannot get mailbox properties from {entry}: {exc}")
             except json.JSONDecodeError as exc:
                 logger.error(f"Cannot decode JSON: {exc}")
                 logger.debug("Trace:", exc_info=True)
@@ -184,8 +185,7 @@ class GrommunioExporter:
 
 
         labels = (self.hostname, domain, username)
-        print()
-        for key, value in mailbox_properties:
+        for key, value in mailbox_properties.items():
             if key == "messagesizeextended":
                 self.gauge_grommunio_mailbox_messagesize.labels(labels).set(value)
             elif key == "creationtime":
@@ -205,6 +205,7 @@ class GrommunioExporter:
 
     
 if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
     print("Running test API calls")
     api = GrommunioExporter(cli_binary="/usr/sbin/grommunio-admin", hostname="test-script")
     mailboxes = api.get_mailboxes()
