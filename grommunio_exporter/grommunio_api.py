@@ -58,7 +58,7 @@ class GrommunioExporter:
 
         mailboxes = []
 
-        cmd = f"{self.cli_binary} user query --format json"
+        cmd = f"{self.cli_binary} user query --format json-structured"
         exit_code, result = command_runner(cmd, timeout=60)
         if exit_code == 0:
             try:
