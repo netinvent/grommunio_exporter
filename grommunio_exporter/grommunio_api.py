@@ -69,7 +69,7 @@ class GrommunioExporter:
                         user, domain = mailbox["username"].split('@')
                         try:
                             per_domain_count[domain].append(user)
-                        except AttributeError:
+                        except (KeyError, AttributeError):
                             per_domain_count[domain] = [user]
                     except (ValueError, TypeError, KeyError, IndexError) as exc:
                         logger.error(f"Cannot decode mailbox data: {exc}")
