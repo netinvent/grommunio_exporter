@@ -40,7 +40,7 @@ parser.add_argument(
     dest="config_file",
     type=str,
     default=default_config_file,
-    required=False,
+    required=None,
     help="Path to grommunio_exporter.yaml file",
 )
 args = parser.parse_args()

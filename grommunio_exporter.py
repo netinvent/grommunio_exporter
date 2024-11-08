@@ -47,9 +47,9 @@ This is free software, and you are welcome to redistribute it under certain cond
         "--config-file",
         dest="config_file",
         type=str,
-        default=default_config_file,
+        default=None,
         required=False,
-        help=f"Path to YAML configuration file (defaults to current dir {default_config_file})",
+        help="Path to YAML configuration file",
     )
     args = parser.parse_args()
 
