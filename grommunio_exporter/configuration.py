@@ -24,6 +24,19 @@ from ofunctions.misc import replace_in_iterable
 ID_STRING = "__GROMMUNIO_EXPORTER__"
 ENCRYPTED_OPTIONS = ["username", "password"]
 AES_KEY = b"p\xfei\n\xfe\xad\xb8\x06;\xae\x0e\x14[\xa5\x97\xb0\xaf\xa9\xefHV\x88qKe\x8cP\xd9\xcd \xe5b"
+
+
+default_config_dict = {
+    "http_server": {
+        "port": 9799,
+        "listen": "0.0.0.0",
+        "log_file": "/var/log/grommunio_exporter.log",
+        "no_auth": True,
+        "username": None,
+        "password": None
+    }
+}
+
 logger = getLogger()
 
 
@@ -200,3 +213,7 @@ def save_config(config_file: Path, full_config: dict) -> bool:
     except OSError:
         logger.critical(f"Cannot save configuration file to {config_file}")
         return False
+
+
+def get_default_config():
+    return convert_to_commented_map(default_config_dict)

@@ -19,7 +19,7 @@ from ofunctions.logger_utils import logger_get_logger
 from pathlib import Path
 from argparse import ArgumentParser
 from grommunio_exporter.__debug__ import _DEBUG
-from grommunio_exporter.configuration import load_config
+from grommunio_exporter.configuration import load_config, get_default_config
 from grommunio_exporter import metrics
 
 logger = logger_get_logger(__appname__ + ".log", debug=_DEBUG)
@@ -54,14 +54,19 @@ This is free software, and you are welcome to redistribute it under certain cond
     args = parser.parse_args()
 
     config_file = Path(args.config_file)
-    if not config_file.exists():
-        logger.critical(f"Cannot load config file {config_file}")
-        sys.exit(1)
+    if config_file:
+        if not config_file.exists():
+            logger.critical(f"Cannot load config file {config_file}")
+            sys.exit(1)
 
-    config_dict = load_config(config_file)
-    if not config_dict:
-        logger.critical(f"Cannot load configuration file {config_file}")
-        sys.exit(1)
+        config_dict = load_config(config_file)
+        if not config_dict:
+            logger.critical(f"Cannot load configuration file {config_file}")
+            sys.exit(1)
+    else:
+        config_dict = get_default_config()
+    
+    
 
     try:
         logger = logger_get_logger(config_dict.g("http_server.log_file"), debug=_DEBUG)

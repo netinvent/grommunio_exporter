@@ -14,6 +14,7 @@ __build__ = "2024110501"
 
 import sys
 from logging import getLogger
+from pathlib import Path
 import secrets
 from argparse import ArgumentParser
 from fastapi import FastAPI, HTTPException, Depends, status
@@ -21,7 +22,7 @@ from fastapi.responses import Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi_offline import FastAPIOffline
 from grommunio_exporter.__version__ import __version__
-from grommunio_exporter.configuration import load_config
+from grommunio_exporter.configuration import load_config, get_default_config
 from grommunio_exporter.grommunio_api import GrommunioExporter
 import prometheus_client
 import socket
@@ -43,15 +44,18 @@ parser.add_argument(
     help="Path to grommunio_exporter.yaml file",
 )
 args = parser.parse_args()
-if args.config_file:
-    config_dict = load_config(args.config_file)
-else:
-    logger.critical("No configuration file given. Exiting.")
-    sys.exit(1)
+config_file = Path(args.config_file)
+if config_file:
+    if not config_file.exists():
+        logger.critical(f"Cannot load config file {config_file}")
+        sys.exit(1)
 
-if not config_dict:
-    logger.critical("No configuration file loaded. Exiting.")
-    sys.exit(1)
+    config_dict = load_config(config_file)
+    if not config_dict:
+        logger.critical(f"Cannot load configuration file {config_file}")
+        sys.exit(1)
+else:
+    config_dict = get_default_config()
 
 http_username = config_dict.g("http_server.username")
 http_password = config_dict.g("http_server.password")
