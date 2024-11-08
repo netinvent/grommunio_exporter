@@ -51,8 +51,8 @@ This is free software, and you are welcome to redistribute it under certain cond
     )
     args = parser.parse_args()
 
-    config_file = Path(args.config_file)
-    if config_file:
+    if args.config_file:
+        config_file = Path(args.config_file)
         if not config_file.exists():
             logger.critical(f"Cannot load config file {config_file}")
             sys.exit(1)

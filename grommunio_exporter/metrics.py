@@ -43,8 +43,9 @@ parser.add_argument(
     help="Path to optional grommunio_exporter.yaml file",
 )
 args = parser.parse_args()
-config_file = Path(args.config_file)
-if config_file:
+
+if args.config_file:
+    config_file = Path(args.config_file)
     if not config_file.exists():
         logger.critical(f"Cannot load config file {config_file}")
         sys.exit(1)
