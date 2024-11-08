@@ -32,16 +32,15 @@ logger = getLogger()
 
 
 # Make sure we load given config files again
-default_config_file = "grommunio_exporter.yaml"
 parser = ArgumentParser()
 parser.add_argument(
     "-c",
     "--config-file",
     dest="config_file",
     type=str,
-    default=default_config_file,
+    default=None,
     required=None,
-    help="Path to grommunio_exporter.yaml file",
+    help="Path to optional grommunio_exporter.yaml file",
 )
 args = parser.parse_args()
 config_file = Path(args.config_file)

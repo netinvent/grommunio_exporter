@@ -29,8 +29,6 @@ def main():
     global logger
     _DEV = os.environ.get("_DEV", False)
 
-    default_config_file = "grommunio_exporter.yaml"
-
     parser = ArgumentParser(
         prog=f"{__appname__}",
         description="""Grommunio API Prometheus exporter\n
