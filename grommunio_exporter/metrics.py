@@ -52,10 +52,10 @@ if not config_dict:
     logger.critical("No configuration file loaded. Exiting.")
     sys.exit(1)
 
-http_username = config_dict.http_server.username
-http_password = config_dict.http_server.password
-http_no_auth = config_dict.http_server.no_auth
-cli_binary = config_dict.grommunio_admin_binary
+http_username = config_dict.g("http_server.username")
+http_password = config_dict.g("http_server.password")
+http_no_auth = config_dict.g("http_server.no_auth")
+cli_binary = config_dict.g("rommunio_admin_binary")
 if not cli_binary:
     cli_binary = "/usr/sbin/grommunio-admin"
 

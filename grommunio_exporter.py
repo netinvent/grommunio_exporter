@@ -64,7 +64,7 @@ This is free software, and you are welcome to redistribute it under certain cond
         sys.exit(1)
 
     try:
-        logger = logger_get_logger(config_dict["http_server"]["log_file"], debug=_DEBUG)
+        logger = logger_get_logger(config_dict.g("http_server.log_file"), debug=_DEBUG)
     except (AttributeError, KeyError, IndexError, TypeError):
         pass
 
@@ -72,12 +72,12 @@ This is free software, and you are welcome to redistribute it under certain cond
         _DEV = True
 
     try:
-        listen = config_dict["http_server"]["listen"]
-    except (TypeError, KeyError):
+        listen = config_dict.g("http_server.listen")
+    except (TypeError, KeyError, AttributeError):
         listen = None
     try:
-        port = config_dict["http_server"]["port"]
-    except (TypeError, KeyError):
+        port = config_dict.g("http_server.port")
+    except (TypeError, KeyError, AttributeError):
         port = None
 
     # Cannot use gunicorn on Windows
