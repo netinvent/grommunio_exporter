@@ -85,7 +85,7 @@ class GrommunioExporter:
 
     def _get_domain_from_username(self, username: str):
         if "@" in username:
-            return username.split('@')[2]
+            return username.split('@')[1]
         return "no_domain"
     
     def get_mailboxes(self):
