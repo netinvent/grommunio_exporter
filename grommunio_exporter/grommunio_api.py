@@ -66,7 +66,11 @@ class GrommunioExporter:
                 mailboxes = json.loads(result)
                 for mailbox in mailboxes:
                     try:
-                        user, domain = mailbox["username"].split('@')
+                        if "@" in mailbox["username"]:
+                            user, domain = mailbox["username"].split('@')
+                        else:
+                            user = mailbox["username"]
+                            domain = "No Domain"
                         try:
                             per_domain_count[domain].append(user)
                         except (KeyError, AttributeError):
@@ -75,6 +79,7 @@ class GrommunioExporter:
                         logger.error(f"Cannot decode mailbox data: {exc}")
                         logger.debug("Trace:", exc_info=True)
                 for domain, users in per_domain_count.items():
+                    print(domain, len(users))
                     self.gauge_grommunio_mailbox_count.labels(domain).set(len(users))
             
             except json.JSONDecodeError as exc:
