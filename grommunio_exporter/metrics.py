@@ -24,6 +24,7 @@ from grommunio_exporter.__version__ import __version__
 from grommunio_exporter.configuration import load_config
 from grommunio_exporter.grommunio_api import GrommunioExporter
 import prometheus_client
+import socket
 
 
 logger = getLogger()
@@ -55,16 +56,20 @@ if not config_dict:
 http_username = config_dict.g("http_server.username")
 http_password = config_dict.g("http_server.password")
 http_no_auth = config_dict.g("http_server.no_auth")
-cli_binary = config_dict.g("rommunio_admin_binary")
+cli_binary = config_dict.g("grommunio.cli_binary")
 if not cli_binary:
     cli_binary = "/usr/sbin/grommunio-admin"
+hostname = config_dict.g("grommunio.hostname")
+if not hostname:
+    hostname = socket.getfqdn()
+
 
 app = FastAPIOffline()
 metrics_app = prometheus_client.make_asgi_app()
 app.mount("/metrics", metrics_app)
 security = HTTPBasic()
 
-api = GrommunioExporter(cli_binary=cli_binary)
+api = GrommunioExporter(cli_binary=cli_binary, hostname=hostname)
 
 
 

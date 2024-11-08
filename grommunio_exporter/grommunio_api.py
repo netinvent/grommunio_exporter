@@ -13,6 +13,7 @@ __build__ = "2024110501"
 
 from ofunctions.misc import fn_name
 from logging import getLogger
+from pathlib import Path
 import time
 import datetime
 import json
@@ -34,15 +35,17 @@ class GrommunioExporter:
 
     def __init__(
         self,
-        cli_binary
+        cli_binary: Path,
+        hostname: str
     ):
         self.cli_binary = cli_binary
+        self.hostname = hostname
 
         # Register gauges
         self.gauge_grommunio_mailbox_count = Gauge(
             "grommunio_mailbox_count",
             "Mailbox count",
-            ["domain"]
+            ["hostname", "domain"]
         )
 
 
@@ -80,7 +83,7 @@ class GrommunioExporter:
                         logger.debug("Trace:", exc_info=True)
                 for domain, users in per_domain_count.items():
                     print(domain, len(users))
-                    self.gauge_grommunio_mailbox_count.labels(domain).set(len(users))
+                    self.gauge_grommunio_mailbox_count.labels(self.hostname, domain).set(len(users))
             
             except json.JSONDecodeError as exc:
                 logger.error(f"Cannot decode JSON: {exc}")

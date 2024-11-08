@@ -2,8 +2,11 @@ http_server:
   port: 9799
   listen: 0.0.0.0
   log_file: /var/log/grommunio_exporter.log
+  # Optional api authentication
   no_auth: true
   username:
   password:
 grommunio:
+  # Optional overrides
   cli_binary: /usr/sbin/grommunio-admin
+  alternative_hostname:
