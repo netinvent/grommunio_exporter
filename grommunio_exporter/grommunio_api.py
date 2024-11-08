@@ -47,6 +47,12 @@ class GrommunioExporter:
             ["hostname", "domain"]
         )
 
+        self.gauge_grommunio_shared_mailbox_count = Gauge(
+            "grommunio_shared_mailbox_count",
+            "Mailbox count",
+            ["hostname", "domain"]
+        )
+
 
         self.gauge_grommunio_mailbox_messagesize = Gauge(
             "grommunio_mailbox_messagesize",
@@ -104,21 +110,31 @@ class GrommunioExporter:
         exit_code, result = command_runner(cmd, timeout=60)
         if exit_code == 0:
             try:
-                per_domain_count = {}
+                per_domain_mailbox_count = {}
+                per_domain_shared_mailbox_count = {}
                 mailboxes = json.loads(result)
                 for mailbox in mailboxes:
                     try:
                         username = mailbox["username"]
                         domain = self._get_domain_from_username(username)
-                        try:
-                            per_domain_count[domain].append(username)
-                        except (KeyError, AttributeError):
-                            per_domain_count[domain] = [username]
+                        # status = 4 is shared mailbox
+                        if mailbox["status"] == 4:
+                            try:
+                                per_domain_shared_mailbox_count[domain].append(username)
+                            except (KeyError, AttributeError):
+                                per_domain_shared_mailbox_count[domain] = [username]
+                        else:
+                            try:
+                                per_domain_mailbox_count[domain].append(username)
+                            except (KeyError, AttributeError):
+                                per_domain_mailbox_count[domain] = [username]
                     except (ValueError, TypeError, KeyError, IndexError) as exc:
                         logger.error(f"Cannot decode mailbox data: {exc}")
                         logger.debug("Trace:", exc_info=True)
-                for domain, users in per_domain_count.items():
+                for domain, users in per_domain_mailbox_count.items():
                     self.gauge_grommunio_mailbox_count.labels(self.hostname, domain).set(len(users))
+                for domain, users in per_domain_shared_mailbox_count.items():
+                    self.gauge_grommunio_shared_mailbox_count.labels(self.hostname, domain).set(len(users))
             
             except json.JSONDecodeError as exc:
                 logger.error(f"Cannot decode JSON: {exc}")
@@ -184,7 +200,6 @@ class GrommunioExporter:
                 logger.debug("Trace:", exc_info=True)
         else:
             logger.error(f"Could not execute {cmd}: Failed with error code {exit_code}: {result}")
-
 
         labels = (self.hostname, domain, username)
         for key, value in mailbox_properties.items():

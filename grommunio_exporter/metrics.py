@@ -118,7 +118,9 @@ async def api_root(auth=Depends(auth_scheme)):
 async def get_metrics(auth=Depends(auth_scheme)):
     try:
         for mailbox in api.get_mailboxes():
-            api.get_mailbox_properties(mailbox["username"])
+            # Don't include shared mailboxes
+            if mailbox["status"] != 4:
+                api.get_mailbox_properties(mailbox["username"])
     except Exception as exc:
         logger.critical(f"Cannot satisfy prometheus data: {exc}")
         logger.critical("Trace", exc_info=True)
