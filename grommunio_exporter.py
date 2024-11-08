@@ -20,6 +20,7 @@ from pathlib import Path
 from argparse import ArgumentParser
 from grommunio_exporter.__debug__ import _DEBUG
 from grommunio_exporter.configuration import load_config
+from grommunio_exporter import metrics
 
 logger = logger_get_logger(__appname__ + ".log", debug=_DEBUG)
 
