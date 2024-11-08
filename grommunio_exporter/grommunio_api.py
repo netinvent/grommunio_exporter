@@ -101,6 +101,9 @@ class GrommunioExporter:
         
         Only half of the grommunio-admin-api has --format json, so we need to come up with a little awk situation here
         We could also improve this by using regex, but let's be honest, it'll be easier for grommunio to implement --format here
+
+        basically cmd is 
+        grommunio-admin exmdb user@domain.tld store get |awk ' BEGIN { printf"[" } {if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf"]\n"}'
         """
         awk_cmd = """awk ' BEGIN { printf"[" } {if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf"]\n"}'"""
         cmd = f'{self.cli_binary} exmdb {mailbox} store get | {awk_cmd}'
@@ -113,6 +116,6 @@ class GrommunioExporter:
                 print(result)
     
 if __name__ == "__main__":
-    api = GrommunioExporter(cli_binary="/usr/sbin/grommunio-admin")
+    api = GrommunioExporter(cli_binary="/usr/sbin/grommunio-admin", hostname="test-script")
     api.get_mailboxes()
     api.get_mailbox_properties()
