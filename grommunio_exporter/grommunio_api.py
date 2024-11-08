@@ -100,3 +100,6 @@ class GrommunioExporter:
             except:
                 pass # WIP
     
+if __name__ == "__main__":
+    api = GrommunioExporter(cli_binary="/usr/sbin/grommunio-admin")
+    api.get_mailboxes()
