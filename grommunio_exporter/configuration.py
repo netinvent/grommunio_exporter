@@ -18,6 +18,7 @@ from logging import getLogger
 from cryptidy import symmetric_encryption as enc
 from ruamel.yaml import YAML
 from ruamel.yaml.compat import ordereddict
+from ruamel.yaml.comments import CommentedMap
 from ofunctions.misc import replace_in_iterable
 
 ID_STRING = "__GROMMUNIO_EXPORTER__"
@@ -34,10 +35,26 @@ def g(self, path, sep=".", default=None, list_ok=False):
     Getter for dot notation in an a dict/OrderedDict
     print(d.g('my.array.keys'))
     """
-    return self.mlget(path.split(sep), default=default, list_ok=list_ok)
+    try:
+        return self.mlget(path.split(sep), default=default, list_ok=list_ok)
+    except AssertionError as exc:
+        logger.debug(
+            f"CONFIG ERROR {exc} for path={path},sep={sep},default={default},list_ok={list_ok}"
+        )
+        raise AssertionError
 
 
 ordereddict.g = g
+
+def convert_to_commented_map(
+    source_dict,
+):
+    if isinstance(source_dict, dict):
+        return CommentedMap(
+            {k: convert_to_commented_map(v) for k, v in source_dict.items()}
+        )
+    else:
+        return source_dict
 
 
 def key_should_be_encrypted(key: str, encrypted_options: List[str]):
@@ -163,7 +180,7 @@ def load_config(config_file: Path) -> Optional[dict]:
     if config_file_is_updated:
         logger.info("Updating config file")
         save_config(config_file, full_config)
-    return full_config
+    return convert_to_commented_map(full_config)
 
 
 def save_config(config_file: Path, full_config: dict) -> bool:
