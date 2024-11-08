@@ -61,7 +61,7 @@ class GrommunioExporter:
         )
 
         self.gauge_grommunio_mailbox_prohibit_reveive_quota = Gauge(
-            "grommunio_mailbox_storage_quota_limit",
+            "grommunio_mailbox_prohibit_receive_limit",
             "Mailbox prohibit receive quota",
             ["hostname", "domain", "username"]
         )
@@ -184,6 +184,7 @@ class GrommunioExporter:
 
 
         labels = (self.hostname, domain, username)
+        print()
         for key, value in mailbox_properties:
             if key == "messagesizeextended":
                 self.gauge_grommunio_mailbox_messagesize.labels(labels).set(value)
