@@ -166,7 +166,7 @@ class GrommunioExporter:
         domain = self._get_domain_from_username(username)
 
         awk_cmd = r"""awk ' BEGIN { printf"[" } {if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf"]\n"}'"""
-        cmd = f'{self.cli_binary} exmdb {mailbox} store get | {awk_cmd}'
+        cmd = f'{self.cli_binary} exmdb {username} store get | {awk_cmd}'
         exit_code, result = command_runner(cmd, timeout=60, shell=True)
         if exit_code == 0:
             try:
