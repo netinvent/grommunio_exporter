@@ -56,7 +56,12 @@ class GrommunioExporter:
 
     def get_mailboxes(self):
         """
-        Uses grommunio-admin to fetch mailboxes
+        Used to fetch mailboxes
+        
+        grommunio-admin user query --format --json-structured
+
+        Returns something like
+        [{"ID":0,"username":"admin","status":0},{"ID":1,"username":"user@domain","status":0}]
         """
 
         mailboxes = []
@@ -98,6 +103,26 @@ class GrommunioExporter:
     def get_mailbox_properties(self, mailbox: str):
         """
         Get size of mailbox
+
+        grommunio-admin exmbd user@domain.tld store get
+        will return something alike
+
+        messagesizeextended                                                                                                                                          1923762702  1.79 GiB
+        internetarticlenumber                                                                                                                                               158
+        displayname                Some Guy                                                                                                                               15 B
+        creationtime                                                                                                                                         133399827670000000  2023-09-24 00:46:07
+        displaytypeex                                                                                                                                                         0
+        storagequotalimit                                                                                                                                              18874368  18.0 GiB
+        outofofficestate                                                                                                                                                      0
+        0x66380102                 [90 bytes]
+        prohibitreceivequota                                                                                                                                           16777216  16.0 GiB
+        prohibitsendquota                                                                                                                                              15728640  15.0 GiB
+        normalmessagesizeextended                                                                                                                                    1923662787  1.79 GiB
+        assocmessagesizeextended                                                                                                                                          99915  97.6 kiB
+        0x82c80102                 [6291 bytes]
+        0x82c90102                 [1760 bytes]
+        0x8346001f                 {"settings":{"zarafa":{"v1":{"main":{"thumbnail_photo":"data:image\/jpeg;base64,\/9j\/4DFGDFGHDFGZJRgBAQEAVQBVsdfC\/2wBDAAMDFMDAwMEAwMEBQgF…  4.97 kiB
+
         
         Only half of the grommunio-admin-api has --format json, so we need to come up with a little awk situation here
         We could also improve this by using regex, but let's be honest, it'll be easier for grommunio to implement --format here
@@ -108,15 +133,18 @@ class GrommunioExporter:
 
         mailbox_properties = {}
 
-        awk_cmd = """awk ' BEGIN { printf"[" } {if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf"]\n"}'"""
+        awk_cmd = r"""awk ' BEGIN { printf"[" } {if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf"]\n"}'"""
         cmd = f'{self.cli_binary} exmdb {mailbox} store get | {awk_cmd}'
         exit_code, result = command_runner(cmd, timeout=60, shell=True)
         if exit_code == 0:
             try:
-                print(result)
-            except:
-                print("oh shi")
-                print(result)
+                mbox_props_list = json.loads(result)
+                for entry in mbox_props_list:
+                    # Get first key value pair (since we only have one)
+                    mailbox_properties[list(entry.keys())[0]] = list(entry.values())[0]
+            except json.JSONDecodeError as exc:
+                logger.error(f"Cannot decode JSON: {exc}")
+                logger.debug("Trace:", exc_info=True)
         else:
             logger.error(f"Could not execute {cmd}: Failed with error code {exit_code}: {result}")
         return mailbox_properties
@@ -125,5 +153,10 @@ class GrommunioExporter:
 if __name__ == "__main__":
     print("Running test API calls")
     api = GrommunioExporter(cli_binary="/usr/sbin/grommunio-admin", hostname="test-script")
-    api.get_mailboxes()
-    api.get_mailbox_properties()
+    mailboxes = api.get_mailboxes()
+    print("Found mailboxes:")
+    print(mailboxes)
+    for mailbox in mailboxes:
+        mailbox_properties = api.get_mailbox_properties(mailbox["username"])
+        print("Mailbox properties:")
+        print(mailbox_properties)
