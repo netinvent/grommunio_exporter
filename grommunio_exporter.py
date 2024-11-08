@@ -28,11 +28,11 @@ def main():
     global logger
     _DEV = os.environ.get("_DEV", False)
 
-    default_config_file = "altaro_exporter.yaml"
+    default_config_file = "grommunio_exporter.yaml"
 
     parser = ArgumentParser(
         prog=f"{__appname__}",
-        description="""Hornet Security / Altaro API Prometheus exporter\n
+        description="""Grommunio API Prometheus exporter\n
 This program is distributed under the GNU General Public License and comes with ABSOLUTELY NO WARRANTY.\n
 This is free software, and you are welcome to redistribute it under certain conditions; Please type --license for more info.""",
     )
@@ -126,7 +126,7 @@ This is free software, and you are welcome to redistribute it under certain cond
 
     try:
         if _DEV or os.name == "nt":
-            uvicorn.run("altaro_exporter.metrics:app", **server_args)
+            uvicorn.run("grommunio_exporter.metrics:app", **server_args)
         else:
             StandaloneApplication(metrics.app, server_args).run()
     except KeyboardInterrupt as exc:

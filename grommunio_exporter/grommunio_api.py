@@ -29,7 +29,7 @@ logger = getLogger(_DEBUG)
 
 class GrommunioExporter:
     """
-    Python bindings for Altaro API
+    Python class to discuss with grommunio CLI
     """
 
     def __init__(
@@ -45,65 +45,6 @@ class GrommunioExporter:
             ["domain"]
         )
 
-        self.gauge_altaro_api_success = Gauge(
-            "altaro_api_success",
-            "Altaro API request success 0 = success, 1 = cannot connect, 2 = api error",
-        )
-
-        self.gauge_lastbackup = Gauge(
-            "altaro_lastbackup_timestamp",
-            "Timestamp of last backup",
-            ["vmname", "hostname", "vmuuid"],
-        )
-        self.gauge_lastoffsitecopy = Gauge(
-            "altaro_lastoffsitecopy_timestamp",
-            "Timestamp of last offsite copy",
-            ["vmname", "hostname", "vmuuid"],
-        )
-
-        self.gauge_lastbackup_duration = Gauge(
-            "altaro_lastbackup_duration_seconds",
-            "Duration of last backup",
-            ["vmname", "hostname", "vmuuid"],
-        )
-        self.gauge_lastoffsitecopy_duration = Gauge(
-            "altaro_lastoffsitecopy_duration_seconds",
-            "Duration of last offsite copy",
-            ["vmname", "hostname", "vmuuid"],
-        )
-
-        self.gauge_lastbackup_transfersize_compressed = Gauge(
-            "altaro_lastbackup_transfersize_compressed_bytes",
-            "Compressed size of last backup",
-            ["vmname", "hostname", "vmuuid"],
-        )
-        self.gauge_lastbackup_transfersize_uncompressed = Gauge(
-            "altaro_lastbackup_transfersize_uncompressed_bytes",
-            "Unompressed size of last backup",
-            ["vmname", "hostname", "vmuuid"],
-        )
-
-        self.gauge_lastoffsitecopy_transfersize_compressed = Gauge(
-            "altaro_lastoffsitecopy_transfersize_compressed_bytes",
-            "Compressed size of last offsite copy",
-            ["vmname", "hostname", "vmuuid"],
-        )
-        self.gauge_lastoffsitecopy_transfersize_uncompressed = Gauge(
-            "altaro_lastoffsitecopy_transfersize_uncompressed_bytes",
-            "Uncompressed size of last offsite copy",
-            ["vmname", "hostname", "vmuuid"],
-        )
-        self.gauge_lastbackup_result = Gauge(
-            "altaro_lastbackup_result",
-            "Result of last backup 0 = success, 1 = warning, 2 = error, 3 = unknown, 4 = other",
-            ["vmname", "hostname", "vmuuid"],
-        )
-
-        self.gauge_lastoffsitecopy_result = Gauge(
-            "altaro_lastoffsitecopy_result",
-            "Result of last offsite copy 0 = success, 1 = warning, 2 = error, 3 = unknown, 4 = other",
-            ["vmname", "hostname", "vmuuid"],
-        )
 
         # Create a metric to track time spent and requests made.
         REQUEST_TIME = Summary(

@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 #  -*- coding: utf-8 -*-
 #
-# This file is part of altaro_exporter
+# This file is part of grommunio_exporter
 
 __appname__ = "grommunio_exporter"
 __author__ = "Orsiris de Jong"
@@ -114,8 +114,9 @@ async def get_metrics(auth=Depends(auth_scheme)):
     try:
         api.get_mailboxes()
         #api.get_mailbox_sizes()
-    except KeyError:
-        logger.critical("Bogus configuration file. Missing Altaro_hosts key.")
+    except Exception as exc:
+        logger.critical("Cannot satisfy prometheus data: {exc}")
+        logger.critical("Trace", exc_info=True)
     return Response(
         content=prometheus_client.generate_latest(), media_type="text/plain"
     )
