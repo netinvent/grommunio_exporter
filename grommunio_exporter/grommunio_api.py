@@ -83,7 +83,8 @@ class GrommunioExporter:
             except (TypeError, IndexError, AttributeError, KeyError) as exc:
                 logger.error(f"Cannot interprete mailbox data: {exc}")
                 logger.debug("Trace:", exc_info=True)
-            
+        else:
+            logger.error(f"Could not execute {cmd}: Failed with error code {exit_code}: {result}")
             return mailboxes
         
 

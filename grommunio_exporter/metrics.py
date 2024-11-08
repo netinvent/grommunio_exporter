@@ -115,7 +115,7 @@ async def get_metrics(auth=Depends(auth_scheme)):
         api.get_mailboxes()
         #api.get_mailbox_sizes()
     except Exception as exc:
-        logger.critical("Cannot satisfy prometheus data: {exc}")
+        logger.critical(f"Cannot satisfy prometheus data: {exc}")
         logger.critical("Trace", exc_info=True)
     return Response(
         content=prometheus_client.generate_latest(), media_type="text/plain"
