@@ -27,4 +27,4 @@ jobs:
     - name: Check format with black
       run: |
         python -m pip install black
-        python -m black --check npbackup
+        python -m black --check grommunio_exporter
