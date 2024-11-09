@@ -22,7 +22,8 @@ jobs:
     - name: Analysing the code with pylint
       run: |
         python -m pip install pylint
-        python -m pylint --disable=C,W,R --max-line-length=127 $(git ls-files '*.py')
+        python -m pylint --disable=C,W,R --max-line-length=127 grommunio_exporter
+        python -m pylint --disable=C,W,R --max-line-length=127 grommunio_exporter.py
     - name: Check format with black
       run: |
         python -m pip install black
