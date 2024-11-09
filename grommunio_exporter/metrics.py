@@ -76,6 +76,7 @@ if api_concurrency > 1:
 else:
     USE_THREADS = False
     concurrent = None
+    sleep = None
 
 
 app = FastAPIOffline()
