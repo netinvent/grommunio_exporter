@@ -21,12 +21,13 @@ from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.responses import Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi_offline import FastAPIOffline
+import prometheus_client
+import socket
+from time import sleep
+import concurrent.futures
 from grommunio_exporter.__version__ import __version__
 from grommunio_exporter.configuration import load_config, get_default_config
 from grommunio_exporter.grommunio_api import GrommunioExporter
-import prometheus_client
-import socket
-
 
 logger = getLogger()
 
@@ -71,12 +72,8 @@ if not api_concurrency:
     api_concurrency = 4
 if api_concurrency > 1:
     USE_THREADS = True
-    from time import sleep
-    import concurrent.futures
 else:
     USE_THREADS = False
-    concurrent = None
-    sleep = None
 
 
 app = FastAPIOffline()
