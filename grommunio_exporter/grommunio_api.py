@@ -143,7 +143,7 @@ class GrommunioExporter:
                 f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
             )
         return mailboxes
-    
+
     def get_mailboxes(self):
         """
         Just a wrapper to get exceptions from threads
@@ -241,7 +241,7 @@ class GrommunioExporter:
                 value = convert_from_file_time(value).timestamp()
                 self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(value)
         return mailbox_properties
-    
+
     def get_mailbox_properties(self, username: str):
         """
         Just a wrapper to get exceptions from threads
