@@ -21,6 +21,11 @@ Easiest way to install grommunio_exporter is to use python pip:
 python3 -m pip install grommunio_exporter
 ```
 
+Note that on Grommunio appliances (OpenSuSE 15.4), you'll have to install pip first via
+```
+zypper install python3-pip
+```
+
 The exporter needs to be installed on the host that has grommunio-admin cli interface.  
 Once installed, you can create a systemd service file from the [systemd unit file](examples/grommunio_exporter.service) in the example dir.  
 Once the service is running, you may query the exporter with:
