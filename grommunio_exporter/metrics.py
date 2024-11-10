@@ -9,7 +9,7 @@ __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
 __copyright__ = "Copyright (C) 2024 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2024110901"
+__build__ = "2024111001"
 
 
 import sys
@@ -120,7 +120,8 @@ def run_metrics():
         for thread in thread_list:
             thread.cancel()
         thread_pool.shutdown()
-
+    # Create a gauge for the API status
+    api.api_status_result()
 
 def anonymous_auth():
     return "anonymous"
