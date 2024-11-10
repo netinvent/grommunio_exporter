@@ -5,7 +5,9 @@
 [![Linux linter](https://github.com/netinvent/grommunio_exporter/actions/workflows/pylint-linux.yaml/badge.svg)](https://github.com/netinvent/grommunio_exporter/actions/workflows/pylint-linux.yaml)
 
 
-This program exposes Grommunio email system metrics for Prometheus 
+This program exposes Grommunio email system metrics for Prometheus  
+Since we already have node_exporter for system metrics and postfix_exporter for email deliverability metrics, this closes the gap with mailbox metrics.
+
 
 ### Grafana Dashboard
 
