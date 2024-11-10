@@ -69,7 +69,6 @@ def parse_requirements(filename):
             str(requirement)
             for requirement in pkg_resources.parse_requirements(requirements_txt)
         ]
-        print(install_requires)
         return install_requires
     except OSError:
         print(
@@ -94,11 +93,8 @@ for path in ["__main__.py", PACKAGE_NAME + ".py"]:
     if os.path.isfile(package_file):
         break
 metadata = get_metadata(package_file)
-requirements = parse_requirements(
-    os.path.join(package_path, os.pardir, "requirements.txt")
-)
+requirements = parse_requirements(os.path.join(package_path, "requirements.txt"))
 long_description = _read_file("README.md")
-
 
 console_scripts = [
     "grommunio_exporter = grommunio_exporter.__main__:main"
@@ -146,6 +142,7 @@ setuptools.setup(
         "prometheus",
         "linux",
         "cli",
+        "grafana"
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
