@@ -273,7 +273,7 @@ class GrommunioExporter:
         if self.api_status:
             self.gauge_grommunio_api_status.labels(self.hostname).set(0)
         else:
-            self.gauge_grommunio_api_status.labels(self.hostname).set(0)
+            self.gauge_grommunio_api_status.labels(self.hostname).set(1)
 
 
 if __name__ == "__main__":
