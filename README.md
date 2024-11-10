@@ -9,7 +9,7 @@ This program exposes Grommunio email system metrics for Prometheus
 
 ### Grafana Dashboard
 
-You can find an [example dashboard](examples/grafana_dashboard_v0.1.0.json) in the examples directory
+You can find an [example dashboard](examples/grafana_dashboard_v0.2.1.json) in the examples directory
 
 ![image](examples/grafana_dashboard_v0.1.0.png)
 ![image](examples/grafana_dashboard_v0.1.0b.png)
