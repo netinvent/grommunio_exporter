@@ -271,9 +271,9 @@ class GrommunioExporter:
 
     def api_status_result(self):
         if self.api_status:
-            self.gauge_grommunio_mailbox_creation_time.labels(self.hostname).set(0)
+            self.gauge_grommunio_api_status.labels(self.hostname).set(0)
         else:
-            self.gauge_grommunio_mailbox_creation_time.labels(self.hostname).set(0)
+            self.gauge_grommunio_api_status.labels(self.hostname).set(0)
 
 
 if __name__ == "__main__":
