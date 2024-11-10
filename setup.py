@@ -97,7 +97,7 @@ requirements = parse_requirements(os.path.join(package_path, "requirements.txt")
 long_description = _read_file("README.md")
 
 console_scripts = [
-    "grommunio_exporter = grommunio_exporter.__main__:main"
+    "grommunio_exporter = grommunio_exporter.server:main"
 ]
 setuptools.setup(
     name=PACKAGE_NAME,
