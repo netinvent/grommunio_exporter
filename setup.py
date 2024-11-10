@@ -101,7 +101,7 @@ long_description = _read_file("README.md")
 
 
 console_scripts = [
-    "grommunio_exporter = grommunio_exporter.server:main"
+    "grommunio_exporter = grommunio_exporter.__main__:main"
 ]
 setuptools.setup(
     name=PACKAGE_NAME,
