@@ -17,7 +17,7 @@ from logging import getLogger
 from pathlib import Path
 import secrets
 from argparse import ArgumentParser
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import HTTPException, Depends, status
 from fastapi.responses import Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi_offline import FastAPIOffline
