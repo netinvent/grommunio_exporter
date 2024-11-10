@@ -123,6 +123,7 @@ def run_metrics():
     # Create a gauge for the API status
     api.api_status_result()
 
+
 def anonymous_auth():
     return "anonymous"
 
