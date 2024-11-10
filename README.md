@@ -45,19 +45,20 @@ firewall-cmd --add-port=9799/tcp --permanent && firewall-cmd --reload
 
 ### Metrics
 
-The follwoing metrics have this labels:
-`hostname,domain,username`
+The exporter currently produces the following metrics:  
 
-metrics:
-```
-grommunio_mailbox_count
-grommunio_shared_mailbox_count
-grommunio_mailbox_messagesize
-grommunio_mailbox_storage_quota_limit
-grommunio_mailbox_prohibit_receive_limit
-grommunio_mailbox_prohibit_send_quota
-grommunio_mailbox_creation_time
-```
+- `grommunio_api_status` is 0 when no errors where found in api calls
+- `grommunio_mailbox_count`
+- `grommunio_shared_mailbox_count`
+
+The follwoing metrics are per user and have labels `hostname,domain,username`:
+
+- `grommunio_mailbox_messagesize`
+- `grommunio_mailbox_storage_quota_limit`
+- `grommunio_mailbox_prohibit_receive_limit`
+- `grommunio_mailbox_prohibit_send_quota`
+- `grommunio_mailbox_creation_time`
+
 
 ### Alert rules:
 

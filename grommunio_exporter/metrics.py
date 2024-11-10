@@ -88,6 +88,9 @@ def run_metrics():
     """
     Actual function that runs the requests
     """
+    # Let's reset api status first
+    api.api_status_reset()
+
     if USE_THREADS:
         thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=api_concurrency)
         thread_list = []

@@ -37,7 +37,14 @@ class GrommunioExporter:
         self.cli_binary = cli_binary
         self.hostname = hostname
 
+        # API status variable
+        self.api_status = True
+
         # Register gauges
+        self.gauge_grommunio_api_status = Gauge(
+            "grommunio_api_status", "Is API working ? 0 = ok, 1 = nok", ["hostname"]
+        )
+
         self.gauge_grommunio_mailbox_count = Gauge(
             "grommunio_mailbox_count", "Mailbox count", ["hostname", "domain"]
         )
@@ -135,13 +142,16 @@ class GrommunioExporter:
             except json.JSONDecodeError as exc:
                 logger.error(f"Cannot decode JSON: {exc}")
                 logger.debug("Trace:", exc_info=True)
+                self.api_status = False
             except (TypeError, IndexError, AttributeError, KeyError) as exc:
                 logger.error(f"Cannot interprete mailbox data: {exc}")
                 logger.debug("Trace:", exc_info=True)
+                self.api_status = False
         else:
             logger.error(
                 f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
             )
+            self.api_status = False
         return mailboxes
 
     def get_mailboxes(self):
@@ -153,6 +163,7 @@ class GrommunioExporter:
         except Exception as exc:
             logger.error(f"Could not get mailboxes: {exc}")
             logger.debug("Trace", exc_info=True)
+            self.api_status = False
 
     def _get_mailbox_properties(self, username: str):
         """
@@ -209,10 +220,12 @@ class GrommunioExporter:
             except json.JSONDecodeError as exc:
                 logger.error(f"Cannot decode JSON: {exc}")
                 logger.debug("Trace:", exc_info=True)
+                self.api_status = False
         else:
             logger.error(
                 f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
             )
+            self.api_status = False
             # Since we used awk, we should definitly reset the output
             mailbox_properties = {}
 
@@ -251,6 +264,16 @@ class GrommunioExporter:
         except Exception as exc:
             logger.error(f"Could not get mailboxes: {exc}")
             logger.debug("Trace", exc_info=True)
+            self.api_status = False
+
+    def api_status_reset(self):
+        self.api_status = True
+
+    def api_status_result(self):
+        if self.api_status:
+            self.gauge_grommunio_mailbox_creation_time.labels(self.hostname).set(0)
+        else:
+            self.gauge_grommunio_mailbox_creation_time.labels(self.hostname).set(0)
 
 
 if __name__ == "__main__":
