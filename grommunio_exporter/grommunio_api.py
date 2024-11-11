@@ -187,16 +187,19 @@ class GrommunioExporter:
     def _get_mailbox_properties(self, usernames: List[str]):
         """
         Get various properties of mailboxes
+
+        grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "["} {if ($1=="exmdb") { if (first==1) { printf "],["} else {first=1}}; if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf "]" }'
         """
         mailbox_properties = {}
+        awk_cmd = r"""grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "["} {if ($1=="exmdb") { if (first==1) { printf "],["} else {first=1}}; if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf "]" }'"""
         grommunio_shell_cmd = ""
         for username in usernames:
             grommunio_shell_cmd += f"exmdb {username} store get\n"
-        cmd = f"{self.cli_binary} shell -x << EOF\n{grommunio_shell_cmd}\nEOF"
+        cmd = f"{self.cli_binary} shell -x << EOF 2>/dev/null | {awk_cmd}\n{grommunio_shell_cmd}\nEOF"
         exit_code, result = command_runner(cmd, shell=True)
         if exit_code == 0:
-            match = re.search(result, MBOX_PROP_RE, re.MULTILINE)
-            print(match)
+            print(result)
+            mbox_props_list = json.loads(result)
         else:
             logger.error(
                 f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
