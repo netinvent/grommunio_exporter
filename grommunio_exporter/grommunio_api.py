@@ -191,11 +191,12 @@ class GrommunioExporter:
         grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "["} {if ($1=="exmdb") { if (first==1) { printf "],["} else {first=1}}; if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf "]" }'
         """
         mailbox_properties = {}
-        awk_cmd = r"""grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "["} {if ($1=="exmdb") { if (first==1) { printf "],["} else {first=1}}; if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf "]" }'"""
-        grommunio_shell_cmd = ""
+        awk_cmd = r"""awk 'BEGIN {printf "["} {if ($1=="exmdb") { if (first==1) { printf "],["} else {first=1}}; if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf "]" }'"""
+        grommunio_shell_cmds = ""
         for username in usernames:
-            grommunio_shell_cmd += f"exmdb {username} store get\n"
-        cmd = f"{self.cli_binary} shell -x << EOF 2>/dev/null | {awk_cmd}\n{grommunio_shell_cmd}\nEOF"
+            grommunio_shell_cmds += f"exmdb {username} store get\n"
+        cmd = f"{self.cli_binary} shell -x << EOF 2>/dev/null | {awk_cmd}\n{grommunio_shell_cmds}\nEOF"
+
         exit_code, result = command_runner(cmd, shell=True)
         if exit_code == 0:
             print(result)
