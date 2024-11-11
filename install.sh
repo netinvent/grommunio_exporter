@@ -75,8 +75,12 @@ grommunio:
 EOF
 [ $? -eq 0 ] || log "Failed to setup grommunio_exporter config file" "ERROR"
 
+systemctl deamon-reload
 systemctl enable grommunio_exporter || log "Cannot enable grommunio_exporter service" "ERROR"
-systemctl start grommunio_exporter || log_quit "Cannot start grommunio_exporter service"
+if systemctl is-active grommunio_exporter; then
+    systemctl stop grommunio_exporter || log_quit "Cannot stop grommunio_exporter service" "ERROR"
+fi
+systemctl start grommunio_exporter || log_quit "Cannot start grommunio_exporter service"    
 
 log "Opening firewall port"
 
