@@ -48,7 +48,7 @@ Type=simple
 # You may prefer to use a different user or group on your system.
 #User=grommunio
 #Group=grommunio
-ExecStart=/usr/bin/grommunio_exporter
+ExecStart=/usr/bin/grommunio_exporter -c /etc/grommunio_exporter.yaml
 Restart=always
 RestartSec=60
 
@@ -56,6 +56,24 @@ RestartSec=60
 WantedBy=multi-user.target
 EOF
 [ $? -eq 0 ] || log "Failed to setup systemd unit file" "ERROR"
+
+cat << 'EOF' > /etc/grommunio_exporter.yaml
+http_server:
+  port: 9799
+  listen: 0.0.0.0
+  log_file: /var/log/grommunio_exporter.log
+  # Optional api authentication
+  no_auth: true
+  username:
+  password:
+grommunio:
+  # Optional overrides
+  cli_binary: /usr/sbin/grommunio-admin
+  # concurrent api calls, defaults to 4
+  api_concurrency:
+  alternative_hostname:
+EOF
+[ $? -eq 0 ] || log "Failed to setup grommunio_exporter config file" "ERROR"
 
 systemctl enable grommunio_exporter || log "Cannot enable grommunio_exporter service" "ERROR"
 systemctl start grommunio_exporter || log_quit "Cannot start grommunio_exporter service"
