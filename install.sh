@@ -69,8 +69,6 @@ http_server:
 grommunio:
   # Optional overrides
   cli_binary: /usr/sbin/grommunio-admin
-  # concurrent api calls, defaults to 4
-  api_concurrency:
   alternative_hostname:
 EOF
 [ $? -eq 0 ] || log "Failed to setup grommunio_exporter config file" "ERROR"
