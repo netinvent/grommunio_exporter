@@ -29,7 +29,9 @@ from grommunio_exporter.__debug__ import _DEBUG
 
 logger = logging.getLogger()
 
-MBOX_PROP_RE = re.compile(r"exmdb\s([a-z0-9\._%+!$&*=^|~#%'`?{}\/\-]+@([a-z0-9\-]+\.){1,}([a-z]{2,16}))\sstore\sget\nmessagesizeextended\s+(\d+).*\n.*\ndisplayname.*\ncreationtime\s+(\d+).*\n.*\nstoragequotalimit\s+(\d+).*\n.*\n.*\nprohibitreceivequota\s+(\d+).*\nprohibitsendquota\s+(\d+)")
+MBOX_PROP_RE = re.compile(
+    r"exmdb\s([a-z0-9\._%+!$&*=^|~#%'`?{}\/\-]+@([a-z0-9\-]+\.){1,}([a-z]{2,16}))\sstore\sget\nmessagesizeextended\s+(\d+).*\n.*\ndisplayname.*\ncreationtime\s+(\d+).*\n.*\nstoragequotalimit\s+(\d+).*\n.*\n.*\nprohibitreceivequota\s+(\d+).*\nprohibitsendquota\s+(\d+)"
+)
 
 
 class GrommunioExporter:
@@ -109,7 +111,7 @@ class GrommunioExporter:
 
         mailboxes = []
         if filter_mailing_lists:
-            filter= " --filter mlist="
+            filter = " --filter mlist="
 
         cmd = f"{self.cli_binary} user query{filter} --format json-structured"
         exit_code, result = command_runner(cmd, timeout=60)
@@ -126,7 +128,7 @@ class GrommunioExporter:
             )
             self.api_status = False
         return mailboxes
-    
+
     def update_mailbox_gauges(self, mailboxes: dict):
         per_domain_mailbox_count = {}
         per_domain_shared_mailbox_count = {}
@@ -149,14 +151,13 @@ class GrommunioExporter:
                 logger.error(f"Cannot decode mailbox data: {exc}")
                 logger.debug("Trace:", exc_info=True)
         for domain, users in per_domain_mailbox_count.items():
-            self.gauge_grommunio_mailbox_count.labels(
-                self.hostname, domain
-            ).set(len(users))
+            self.gauge_grommunio_mailbox_count.labels(self.hostname, domain).set(
+                len(users)
+            )
         for domain, users in per_domain_shared_mailbox_count.items():
-            self.gauge_grommunio_shared_mailbox_count.labels(
-                self.hostname, domain
-            ).set(len(users))
-
+            self.gauge_grommunio_shared_mailbox_count.labels(self.hostname, domain).set(
+                len(users)
+            )
 
     def get_mailboxes(self):
         """
@@ -169,7 +170,9 @@ class GrommunioExporter:
             logger.debug("Trace", exc_info=True)
             self.api_status = False
 
-    def get_usernames_from_mailboxes(self, mailboxes: list, filter_no_domain: bool = True) -> List[str]:
+    def get_usernames_from_mailboxes(
+        self, mailboxes: list, filter_no_domain: bool = True
+    ) -> List[str]:
         """
         Extract a list of usernames from mailboxes
         """
@@ -212,7 +215,7 @@ class GrommunioExporter:
             mailbox_properties = {}
 
         return mailbox_properties
-    
+
     def update_mailbox_properties_gauges(self, mailbox_properties: dict):
         for mailbox_prop in mailbox_properties:
             username = "none"
@@ -223,30 +226,33 @@ class GrommunioExporter:
                     if key == "exmdb":
                         username = value
                         domain = self._get_domain_from_username(username)
-                        labels = (self.hostname, domain, username)    
+                        labels = (self.hostname, domain, username)
                     if key == "messagesizeextended":
-                        self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(value)
+                        self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(
+                            value
+                        )
                     elif key == "storagequotalimit":
                         # Value given in KB iec, we need to convert it to bytes
                         value = BytesConverter(f"{value} KiB")
-                        self.gauge_grommunio_mailbox_storage_quota_limit.labels(*labels).set(
-                            value
-                        )
+                        self.gauge_grommunio_mailbox_storage_quota_limit.labels(
+                            *labels
+                        ).set(value)
                     elif key == "prohibitreceivequota":
                         value = BytesConverter(f"{value} KiB")
-                        self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(*labels).set(
-                            value
-                        )
+                        self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(
+                            *labels
+                        ).set(value)
                     elif key == "prohibitsendquota":
                         value = BytesConverter(f"{value} KiB")
-                        self.gauge_grommunio_mailbox_prohibit_send_quota.labels(*labels).set(
-                            value
-                        )
+                        self.gauge_grommunio_mailbox_prohibit_send_quota.labels(
+                            *labels
+                        ).set(value)
                     elif key == "creationtime":
                         # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
                         value = convert_from_file_time(value).timestamp()
-                        self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(value)
-
+                        self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(
+                            value
+                        )
 
     def get_mailbox_properties(self, usernames: List[str]):
         try:
@@ -254,7 +260,7 @@ class GrommunioExporter:
         except Exception as exc:
             logger.error(f"Could not get mailboxes properties: {exc}")
             logger.debug("Trace", exc_info=True)
-            self.api_status = False     
+            self.api_status = False
 
     def api_status_reset(self):
         self.api_status = True
