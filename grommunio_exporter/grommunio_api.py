@@ -197,7 +197,12 @@ class GrommunioExporter:
 
         exit_code, result = command_runner(cmd, shell=True)
         if exit_code == 0:
-            mailbox_properties = json.loads(result)
+            try:
+                mailbox_properties = json.loads(result)
+            except json.JSONDecodeError as exc:
+                logger.error(f"Cannot decode JSON: {exc}")
+                logger.debug("Trace:", exc_info=True)
+                self.api_status = False
         else:
             logger.error(
                 f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
