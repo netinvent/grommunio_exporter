@@ -217,34 +217,35 @@ class GrommunioExporter:
         for mailbox_prop in mailbox_properties:
             username = "none"
             labels = (self.hostname, "no_domain", "none")
-            for key, value in mailbox_prop.items():
-                # We must have exmdb key before others
-                if key == "exmdb":
-                    username = mailbox_prop["exmdb"]
-                    domain = self._get_domain_from_username(username)
-                    labels = (self.hostname, domain, username)    
-                if key == "messagesizeextended":
-                    self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(value)
-                elif key == "storagequotalimit":
-                    # Value given in KB iec, we need to convert it to bytes
-                    value = BytesConverter(f"{value} KiB")
-                    self.gauge_grommunio_mailbox_storage_quota_limit.labels(*labels).set(
-                        value
-                    )
-                elif key == "prohibitreceivequota":
-                    value = BytesConverter(f"{value} KiB")
-                    self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(*labels).set(
-                        value
-                    )
-                elif key == "prohibitsendquota":
-                    value = BytesConverter(f"{value} KiB")
-                    self.gauge_grommunio_mailbox_prohibit_send_quota.labels(*labels).set(
-                        value
-                    )
-                elif key == "creationtime":
-                    # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
-                    value = convert_from_file_time(value).timestamp()
-                    self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(value)
+            for entry in mailbox_prop:
+                for key, value in entry.items():
+                    # We must have exmdb key before others
+                    if key == "exmdb":
+                        username = mailbox_prop["exmdb"]
+                        domain = self._get_domain_from_username(username)
+                        labels = (self.hostname, domain, username)    
+                    if key == "messagesizeextended":
+                        self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(value)
+                    elif key == "storagequotalimit":
+                        # Value given in KB iec, we need to convert it to bytes
+                        value = BytesConverter(f"{value} KiB")
+                        self.gauge_grommunio_mailbox_storage_quota_limit.labels(*labels).set(
+                            value
+                        )
+                    elif key == "prohibitreceivequota":
+                        value = BytesConverter(f"{value} KiB")
+                        self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(*labels).set(
+                            value
+                        )
+                    elif key == "prohibitsendquota":
+                        value = BytesConverter(f"{value} KiB")
+                        self.gauge_grommunio_mailbox_prohibit_send_quota.labels(*labels).set(
+                            value
+                        )
+                    elif key == "creationtime":
+                        # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
+                        value = convert_from_file_time(value).timestamp()
+                        self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(value)
 
 
     def get_mailbox_properties(self, usernames: List[str]):
