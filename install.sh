@@ -26,6 +26,8 @@ function log_quit {
     exit 1
 }
 
+log "#### Setup grommunio_exporter"
+
 log "Installing python3-pip package"
 
 zypper install -y python3-pip || log_quit "Cannot install python3-pip"
