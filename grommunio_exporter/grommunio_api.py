@@ -221,7 +221,7 @@ class GrommunioExporter:
                 for key, value in entry.items():
                     # We must have exmdb key before others
                     if key == "exmdb":
-                        username = mailbox_prop["exmdb"]
+                        username = value
                         domain = self._get_domain_from_username(username)
                         labels = (self.hostname, domain, username)    
                     if key == "messagesizeextended":
