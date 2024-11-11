@@ -85,7 +85,9 @@ def run_metrics():
     
     mailboxes = api.get_mailboxes()
     usernames = api.get_usernames_from_mailboxes(mailboxes, filter_no_domain=True)
-    api.get_mailbox_properties(usernames)
+    mailbox_properties = api.get_mailbox_properties(usernames)
+    api.update_mailbox_gauges(mailboxes)
+    api.update_mailbox_properties_gauges(mailbox_properties)
     api.api_status_result()
 
 
