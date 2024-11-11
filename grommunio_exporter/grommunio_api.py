@@ -16,6 +16,7 @@ from ofunctions.misc import fn_name
 import logging
 from pathlib import Path
 import json
+import re
 from prometheus_client import Summary, Gauge, Enum
 from command_runner import command_runner
 from ofunctions.misc import BytesConverter
@@ -27,6 +28,8 @@ from grommunio_exporter.__debug__ import _DEBUG
 
 
 logger = logging.getLogger()
+
+MBOX_PROP_RE = re.compile(r"exmdb\s([a-z0-9\._%+!$&*=^|~#%'`?{}\/\-]+@([a-z0-9\-]+\.){1,}([a-z]{2,16}))\sstore\sget\nmessagesizeextended\s+(\d+).*\n.*\ndisplayname.*\ncreationtime\s+(\d+).*\n.*\nstoragequotalimit\s+(\d+).*\n.*\n.*\nprohibitreceivequota\s+(\d+).*\nprohibitsendquota\s+(\d+)")
 
 
 class GrommunioExporter:
@@ -192,7 +195,8 @@ class GrommunioExporter:
         cmd = f"{self.cli_binary} shell -x << EOF\n{grommunio_shell_cmd}\nEOF"
         exit_code, result = command_runner(cmd, shell=True)
         if exit_code == 0:
-            print(result)
+            match = re.search(result, MBOX_PROP_RE, re.MULTILINE)
+            print(match)
         else:
             logger.error(
                 f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
