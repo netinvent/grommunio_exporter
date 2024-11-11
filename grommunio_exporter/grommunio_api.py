@@ -130,34 +130,39 @@ class GrommunioExporter:
         return mailboxes
 
     def update_mailbox_gauges(self, mailboxes: dict):
-        per_domain_mailbox_count = {}
-        per_domain_shared_mailbox_count = {}
-        for mailbox in mailboxes:
-            try:
-                username = mailbox["username"]
-                domain = self._get_domain_from_username(username)
-                # status = 4 is shared mailbox
-                if mailbox["status"] == 4:
-                    try:
-                        per_domain_shared_mailbox_count[domain].append(username)
-                    except (KeyError, AttributeError):
-                        per_domain_shared_mailbox_count[domain] = [username]
-                else:
-                    try:
-                        per_domain_mailbox_count[domain].append(username)
-                    except (KeyError, AttributeError):
-                        per_domain_mailbox_count[domain] = [username]
-            except (ValueError, TypeError, KeyError, IndexError) as exc:
-                logger.error(f"Cannot decode mailbox data: {exc}")
-                logger.debug("Trace:", exc_info=True)
-        for domain, users in per_domain_mailbox_count.items():
-            self.gauge_grommunio_mailbox_count.labels(self.hostname, domain).set(
-                len(users)
-            )
-        for domain, users in per_domain_shared_mailbox_count.items():
-            self.gauge_grommunio_shared_mailbox_count.labels(self.hostname, domain).set(
-                len(users)
-            )
+        try:
+            per_domain_mailbox_count = {}
+            per_domain_shared_mailbox_count = {}
+            for mailbox in mailboxes:
+                try:
+                    username = mailbox["username"]
+                    domain = self._get_domain_from_username(username)
+                    # status = 4 is shared mailbox
+                    if mailbox["status"] == 4:
+                        try:
+                            per_domain_shared_mailbox_count[domain].append(username)
+                        except (KeyError, AttributeError):
+                            per_domain_shared_mailbox_count[domain] = [username]
+                    else:
+                        try:
+                            per_domain_mailbox_count[domain].append(username)
+                        except (KeyError, AttributeError):
+                            per_domain_mailbox_count[domain] = [username]
+                except (ValueError, TypeError, KeyError, IndexError) as exc:
+                    logger.error(f"Cannot decode mailbox data: {exc}")
+                    logger.debug("Trace:", exc_info=True)
+            for domain, users in per_domain_mailbox_count.items():
+                self.gauge_grommunio_mailbox_count.labels(self.hostname, domain).set(
+                    len(users)
+                )
+            for domain, users in per_domain_shared_mailbox_count.items():
+                self.gauge_grommunio_shared_mailbox_count.labels(
+                    self.hostname, domain
+                ).set(len(users))
+        except (TypeError, AttributeError, KeyError, IndexError, ValueError) as exc:
+            logger.error(f"Cannot iter over mailboxes: {exc}")
+            logger.debug("Trace:", exc_info=True)
+            self.api_status = False
 
     def get_mailboxes(self):
         """
@@ -217,42 +222,47 @@ class GrommunioExporter:
         return mailbox_properties
 
     def update_mailbox_properties_gauges(self, mailbox_properties: dict):
-        for mailbox_prop in mailbox_properties:
-            username = "none"
-            labels = (self.hostname, "no_domain", "none")
-            for entry in mailbox_prop:
-                for key, value in entry.items():
-                    # We must have exmdb key before others
-                    if key == "exmdb":
-                        username = value
-                        domain = self._get_domain_from_username(username)
-                        labels = (self.hostname, domain, username)
-                    if key == "messagesizeextended":
-                        self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(
-                            value
-                        )
-                    elif key == "storagequotalimit":
-                        # Value given in KB iec, we need to convert it to bytes
-                        value = BytesConverter(f"{value} KiB")
-                        self.gauge_grommunio_mailbox_storage_quota_limit.labels(
-                            *labels
-                        ).set(value)
-                    elif key == "prohibitreceivequota":
-                        value = BytesConverter(f"{value} KiB")
-                        self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(
-                            *labels
-                        ).set(value)
-                    elif key == "prohibitsendquota":
-                        value = BytesConverter(f"{value} KiB")
-                        self.gauge_grommunio_mailbox_prohibit_send_quota.labels(
-                            *labels
-                        ).set(value)
-                    elif key == "creationtime":
-                        # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
-                        value = convert_from_file_time(value).timestamp()
-                        self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(
-                            value
-                        )
+        try:
+            for mailbox_prop in mailbox_properties:
+                username = "none"
+                labels = (self.hostname, "no_domain", "none")
+                for entry in mailbox_prop:
+                    for key, value in entry.items():
+                        # We must have exmdb key before others
+                        if key == "exmdb":
+                            username = value
+                            domain = self._get_domain_from_username(username)
+                            labels = (self.hostname, domain, username)
+                        if key == "messagesizeextended":
+                            self.gauge_grommunio_mailbox_messagesize.labels(
+                                *labels
+                            ).set(value)
+                        elif key == "storagequotalimit":
+                            # Value given in KB iec, we need to convert it to bytes
+                            value = BytesConverter(f"{value} KiB")
+                            self.gauge_grommunio_mailbox_storage_quota_limit.labels(
+                                *labels
+                            ).set(value)
+                        elif key == "prohibitreceivequota":
+                            value = BytesConverter(f"{value} KiB")
+                            self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(
+                                *labels
+                            ).set(value)
+                        elif key == "prohibitsendquota":
+                            value = BytesConverter(f"{value} KiB")
+                            self.gauge_grommunio_mailbox_prohibit_send_quota.labels(
+                                *labels
+                            ).set(value)
+                        elif key == "creationtime":
+                            # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
+                            value = convert_from_file_time(value).timestamp()
+                            self.gauge_grommunio_mailbox_creation_time.labels(
+                                *labels
+                            ).set(value)
+        except (TypeError, AttributeError, KeyError, IndexError, ValueError) as exc:
+            logger.error(f"Cannot iter over mailbox properties: {exc}")
+            logger.debug("Trace:", exc_info=True)
+            self.api_status = False
 
     def get_mailbox_properties(self, usernames: List[str]):
         try:
