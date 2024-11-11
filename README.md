@@ -16,19 +16,29 @@ You can find an [example dashboard](examples/grafana_dashboard_v0.2.1.json) in t
 ![image](examples/grafana_dashboard_v0.1.0.png)
 ![image](examples/grafana_dashboard_v0.1.0b.png)
 
-### Install
+### Automatic installation
+
+On current Grommunio appliances based on OpenSuSE, you can use the following all-in-one installer script
+```
+curl -sSfL https://raw.githubusercontent.com/netinvent/grommunio_exporter/refs/heads/main/install.sh | sh -
+```
+
+### Manual Install
 
 Easiest way to install grommunio_exporter is to use python pip:
 ```
 python3 -m pip install grommunio_exporter
 ```
 
-Note that on Grommunio appliances based on OpenSuSE 15.5, you'll have to install pip first via
+#### Special notes for Grommunio appliances
+Note that on Grommunio appliances based on OpenSuSE 15.5, you'll have to install pip first and update wheel package via the following commands.
+Also note that installing the requested requirements for grommunio_exporter will fail if `pip` and `wheel` package isn't up to date in the Grommunio appliance (zypper installs pip 10.0.1, and pip 21.3.1 is required). 
+Lastly, the message `pygobject 3.42.2 requires pycairo>=1.16.0, which is not installed.` can be ignored on these systems.  
 ```
-zypper install python3-pip
-zypper install --upgrade pip setuptools wheel
+zypper install -y python3-pip
+python3 -m pip install --upgrade pip setuptools wheel
+python3 -m pip install grommunio_exporter
 ```
-Also note that installing the requested requirements for grommunio_exporter will fail if `wheel` package isn't up to date. 
 
 Installing via pip will create `/usr/bin/grommunio_exporter`. This file can be run manually for testing purposes, or run as service.
 
@@ -106,11 +116,18 @@ In order to be quick, `grommunio_exporter` uses concurrency to the grommunio_api
 By default, this concurrency is set to 4. You can increase the concurrency if querying is to slow.
 Nevertheless, you should never query more than every 5 minutes to keep the server load down.
 
+You can set the following scrape settings in the prometheus job:
+```
+scrape_interval: 300s
+scrape_timeout: 240s
+```
+
 ### Misc
 
 This version of the grommunio exporter uses the locally installed grommunio-admin cli interface instead of the REST API.  
 Pros:
 - No need for authentication
+
 Cons:
 - Not all commands output parseable json
 - Probably slower than REST UI
