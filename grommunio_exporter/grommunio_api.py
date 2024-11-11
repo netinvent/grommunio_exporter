@@ -215,10 +215,14 @@ class GrommunioExporter:
     
     def update_mailbox_properties_gauges(self, mailbox_properties: dict):
         for mailbox_prop in mailbox_properties:
-            username = mailbox_prop["exmdb"]
-            domain = self._get_domain_from_username(username)
-            labels = (self.hostname, domain, username)
+            username = "none"
+            labels = (self.hostname, "no_domain", "none")
             for key, value in mailbox_prop.items():
+                # We must have exmdb key before others
+                if key == "exmdb":
+                    username = mailbox_prop["exmdb"]
+                    domain = self._get_domain_from_username(username)
+                    labels = (self.hostname, domain, username)    
                 if key == "messagesizeextended":
                     self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(value)
                 elif key == "storagequotalimit":
@@ -254,7 +258,7 @@ class GrommunioExporter:
     def api_status_reset(self):
         self.api_status = True
 
-    def api_status_result(self):
+    def update_api_gauges(self):
         if self.api_status:
             self.gauge_grommunio_api_status.labels(self.hostname).set(0)
         else:
@@ -276,3 +280,10 @@ if __name__ == "__main__":
     mailbox_properties = api.get_mailbox_properties(usernames)
     print("Mailbox properties:")
     print(mailbox_properties)
+
+    print("Updating gauges for mailboxes")
+    api.update_mailbox_gauges(mailboxes)
+    print("Updating gauges for mailbox properties")
+    api.update_mailbox_properties_gauges(mailbox_properties)
+    print("Updating gauges for API status")
+    api.update_api_gauges()
