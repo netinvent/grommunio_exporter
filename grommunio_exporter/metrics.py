@@ -23,8 +23,6 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi_offline import FastAPIOffline
 import prometheus_client
 import socket
-from time import sleep
-import concurrent.futures
 from grommunio_exporter.__version__ import __version__
 from grommunio_exporter.configuration import load_config, get_default_config
 from grommunio_exporter.grommunio_api import GrommunioExporter
@@ -67,13 +65,6 @@ if not cli_binary:
 hostname = config_dict.g("grommunio.hostname")
 if not hostname:
     hostname = socket.getfqdn()
-api_concurrency = config_dict.g("grommunio.api_concurrency")
-if not api_concurrency:
-    api_concurrency = 4
-if api_concurrency > 1:
-    USE_THREADS = True
-else:
-    USE_THREADS = False
 
 
 app = FastAPIOffline()
@@ -91,36 +82,10 @@ def run_metrics():
     # Let's reset api status first
     api.api_status_reset()
 
-    if USE_THREADS:
-        thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=api_concurrency)
-        thread_list = []
-    for mailbox in api.get_mailboxes():
-        if mailbox["status"] != 4:
-            if USE_THREADS:
-                thread_list.append(
-                    thread_pool.submit(api.get_mailbox_properties, mailbox["username"])
-                )
-            else:
-                api.get_mailbox_properties(mailbox["username"])
-
-    if USE_THREADS:
-        # Let's have a proper wait function for threads to finish
-        threads_still_run = True
-        elapsed_loops = 0
-        while elapsed_loops < 120 and threads_still_run:
-            threads_still_run = False
-            for thread in thread_list:
-                if thread.running():
-                    threads_still_run = True
-            sleep(1)
-            elapsed_loops += 1
-
-        logger.debug(f"Thread list: {thread_list}")
-
-        for thread in thread_list:
-            thread.cancel()
-        thread_pool.shutdown()
-    # Create a gauge for the API status
+    
+    mailboxes = api.get_mailboxes()
+    usernames = api.get_usernames_from_mailboxes(mailboxes, filter_no_domain=True)
+    api.get_mailbox_properties(usernames)
     api.api_status_result()
 
 

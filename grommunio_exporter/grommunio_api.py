@@ -11,6 +11,7 @@ __copyright__ = "Copyright (C) 2024 NetInvent"
 __license__ = "GPL-3.0-only"
 __build__ = "2024110501"
 
+from typing import List
 from ofunctions.misc import fn_name
 import logging
 from pathlib import Path
@@ -165,7 +166,67 @@ class GrommunioExporter:
             logger.debug("Trace", exc_info=True)
             self.api_status = False
 
-    def _get_mailbox_properties(self, username: str):
+    def get_usernames_from_mailboxes(self, mailboxes: list, filter_no_domain: bool = True) -> List[str]:
+        """
+        Extract a list of usernames from mailboxes
+        """
+        usernames = []
+        for mailbox in mailboxes:
+            if filter_no_domain:
+                domain = self._get_domain_from_username(mailbox["username"])
+                if domain == "no_domain":
+                    continue
+            usernames.append(mailbox["username"])
+        return usernames
+
+    def _get_mailbox_properties(self, usernames: List[str]):
+        """
+        Get various properties of mailboxes
+        """
+        mailbox_properties = {}
+        grommunio_shell_cmd = ""
+        for username in usernames:
+            grommunio_shell_cmd += f"exmdb {username} store get\n"
+        cmd = f"{self.cli_binary} shell -x << EOF\n{grommunio_shell_cmd}\nEOF"
+        exit_code, result = command_runner(cmd, shell=True)
+        if exit_code == 0:
+            print(result)
+        else:
+            logger.error(
+                f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
+            )
+            self.api_status = False
+            # Since we used awk, we should definitly reset the output
+            mailbox_properties = {}
+
+        labels = (self.hostname, domain, username)
+        for key, value in mailbox_properties.items():
+            if key == "messagesizeextended":
+                self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(value)
+            elif key == "storagequotalimit":
+                # Value given in KB iec, we need to convert it to bytes
+                value = BytesConverter(f"{value} KiB")
+                self.gauge_grommunio_mailbox_storage_quota_limit.labels(*labels).set(
+                    value
+                )
+            elif key == "prohibitreceivequota":
+                value = BytesConverter(f"{value} KiB")
+                self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(*labels).set(
+                    value
+                )
+            elif key == "prohibitsendquota":
+                value = BytesConverter(f"{value} KiB")
+                self.gauge_grommunio_mailbox_prohibit_send_quota.labels(*labels).set(
+                    value
+                )
+            elif key == "creationtime":
+                # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
+                value = convert_from_file_time(value).timestamp()
+                self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(value)
+        return mailbox_properties
+
+
+    def _get_mailbox_properties_old(self, username: str):
         """
         Get size of mailbox
 
@@ -255,7 +316,7 @@ class GrommunioExporter:
                 self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(value)
         return mailbox_properties
 
-    def get_mailbox_properties(self, username: str):
+    def get_mailbox_properties_old(self, username: str):
         """
         Just a wrapper to get exceptions from threads
         """
@@ -265,6 +326,14 @@ class GrommunioExporter:
             logger.error(f"Could not get mailboxes: {exc}")
             logger.debug("Trace", exc_info=True)
             self.api_status = False
+
+    def get_mailbox_properties(self, usernames: List[str]):
+        try:
+            return self._get_mailbox_properties(usernames)
+        except Exception as exc:
+            logger.error(f"Could not get mailboxes properties: {exc}")
+            logger.debug("Trace", exc_info=True)
+            self.api_status = False     
 
     def api_status_reset(self):
         self.api_status = True
