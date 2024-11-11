@@ -356,7 +356,9 @@ if __name__ == "__main__":
     mailboxes = api.get_mailboxes()
     print("Found mailboxes:")
     print(mailboxes)
-    for mailbox in mailboxes:
-        mailbox_properties = api.get_mailbox_properties(mailbox["username"])
-        print("Mailbox properties:")
-        print(mailbox_properties)
+    usernames = api.get_usernames_from_mailboxes(mailboxes)
+    print("Found usernames:")
+    print(usernames)
+    mailbox_properties = api.get_mailbox_properties(usernames)
+    print("Mailbox properties:")
+    print(mailbox_properties)
