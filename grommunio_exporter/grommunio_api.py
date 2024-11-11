@@ -94,7 +94,7 @@ class GrommunioExporter:
             return username.split("@")[1]
         return "no_domain"
 
-    def _get_mailboxes(self):
+    def _get_mailboxes(self, filter_mailing_lists: bool = True):
         """
         Used to fetch mailboxes
 
@@ -105,8 +105,10 @@ class GrommunioExporter:
         """
 
         mailboxes = []
+        if filter_mailing_lists:
+            filter= " --filter mlist="
 
-        cmd = f"{self.cli_binary} user query --format json-structured"
+        cmd = f"{self.cli_binary} user query{filter} --format json-structured"
         exit_code, result = command_runner(cmd, timeout=60)
         if exit_code == 0:
             try:
