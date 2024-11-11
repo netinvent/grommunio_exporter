@@ -13,8 +13,8 @@ Since we already have node_exporter for system metrics and postfix_exporter for 
 
 You can find an [example dashboard](examples/grafana_dashboard_v0.2.1.json) in the examples directory
 
-![image](examples/grafana_dashboard_v0.1.0.png)
-![image](examples/grafana_dashboard_v0.1.0b.png)
+![image](examples/grafana_dashboard_v0.3.0.png)
+![image](examples/grafana_dashboard_v0.3.0b.png)
 
 ### Automatic installation
 

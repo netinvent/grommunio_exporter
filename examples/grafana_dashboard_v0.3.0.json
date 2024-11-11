@@ -31,6 +31,12 @@
       },
       {
         "type": "panel",
+        "id": "stat",
+        "name": "Stat",
+        "version": ""
+      },
+      {
+        "type": "panel",
         "id": "table",
         "name": "Table",
         "version": ""
@@ -58,6 +64,159 @@
     "id": null,
     "links": [],
     "panels": [
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_MIMIR}"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "green",
+                    "index": 0,
+                    "text": "OK"
+                  },
+                  "1": {
+                    "color": "red",
+                    "index": 1,
+                    "text": "BAD"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 1
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "id": 8,
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "11.3.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_MIMIR}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "grommunio_api_status{__tenant_id__=~\"$tenant\",instance=~\"$instance\"}",
+            "instant": true,
+            "legendFormat": "{{instance}}",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "API Status",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_MIMIR}"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "id": 9,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "text": {},
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "11.3.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_MIMIR}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum by (instance) (grommunio_mailbox_count{__tenant_id__=~\"$tenant\",instance=~\"$instance\"})",
+            "instant": true,
+            "legendFormat": "{{instance}}",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "Total Mailbox Count",
+        "type": "stat"
+      },
       {
         "datasource": {
           "type": "prometheus",
@@ -110,7 +269,7 @@
           "h": 8,
           "w": 12,
           "x": 0,
-          "y": 0
+          "y": 8
         },
         "id": 1,
         "options": {
@@ -152,7 +311,7 @@
             "refId": "A"
           }
         ],
-        "title": "Grommunio Mailbox Count",
+        "title": "Mailbox Count per domain",
         "type": "barchart"
       },
       {
@@ -207,7 +366,7 @@
           "h": 8,
           "w": 12,
           "x": 12,
-          "y": 0
+          "y": 8
         },
         "id": 2,
         "options": {
@@ -249,7 +408,7 @@
             "refId": "A"
           }
         ],
-        "title": "Grommunio Shared Mailbox Count",
+        "title": "Shared Mailbox Count per domain",
         "type": "barchart"
       },
       {
@@ -280,7 +439,7 @@
                 "type": "linear"
               },
               "thresholdsStyle": {
-                "mode": "off"
+                "mode": "line+area"
               }
             },
             "mappings": [],
@@ -292,8 +451,12 @@
                   "value": null
                 },
                 {
+                  "color": "#EAB839",
+                  "value": 26843545600
+                },
+                {
                   "color": "red",
-                  "value": 80
+                  "value": 53687091200
                 }
               ]
             },
@@ -305,7 +468,7 @@
           "h": 8,
           "w": 24,
           "x": 0,
-          "y": 8
+          "y": 16
         },
         "id": 3,
         "options": {
@@ -341,13 +504,14 @@
             "editorMode": "code",
             "exemplar": false,
             "expr": "grommunio_mailbox_messagesize{__tenant_id__=~\"$tenant\",instance=~\"$instance\"}",
+            "format": "time_series",
             "instant": true,
             "legendFormat": "{{username}}",
             "range": false,
             "refId": "A"
           }
         ],
-        "title": "Grommunio Mailbox Sizes",
+        "title": "Mailbox Sizes",
         "type": "barchart"
       },
       {
@@ -403,7 +567,7 @@
           "h": 8,
           "w": 24,
           "x": 0,
-          "y": 16
+          "y": 24
         },
         "id": 4,
         "options": {
@@ -445,7 +609,7 @@
             "refId": "A"
           }
         ],
-        "title": "Grommunio Mailbox Used Storage Quota %",
+        "title": "Mailbox Used Storage Quota %",
         "type": "barchart"
       },
       {
@@ -501,7 +665,7 @@
           "h": 8,
           "w": 12,
           "x": 0,
-          "y": 24
+          "y": 32
         },
         "id": 5,
         "options": {
@@ -543,7 +707,7 @@
             "refId": "A"
           }
         ],
-        "title": "Grommunio Mailbox Used Prohibit Receive Quota %",
+        "title": "Mailbox Used Prohibit Receive Quota %",
         "type": "barchart"
       },
       {
@@ -599,7 +763,7 @@
           "h": 8,
           "w": 12,
           "x": 12,
-          "y": 24
+          "y": 32
         },
         "id": 6,
         "options": {
@@ -641,7 +805,7 @@
             "refId": "A"
           }
         ],
-        "title": "Grommunio Mailbox Used Prohibit Receive Quota %",
+        "title": "Mailbox Used Prohibit Send Quota %",
         "type": "barchart"
       },
       {
@@ -680,7 +844,7 @@
           "h": 8,
           "w": 24,
           "x": 0,
-          "y": 32
+          "y": 40
         },
         "id": 7,
         "options": {
@@ -718,7 +882,7 @@
             "refId": "A"
           }
         ],
-        "title": "Grommunio Mailbox Creation date",
+        "title": "Mailbox Creation date",
         "transformations": [
           {
             "id": "calculateField",
@@ -843,13 +1007,13 @@
       ]
     },
     "time": {
-      "from": "now-3h",
+      "from": "now-5m",
       "to": "now"
     },
     "timepicker": {},
     "timezone": "browser",
     "title": "Grommunio",
     "uid": "ee3euwuxgzpj4f",
-    "version": 18,
+    "version": 24,
     "weekStart": ""
   }
