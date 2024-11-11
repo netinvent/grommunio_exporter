@@ -186,10 +186,10 @@ class GrommunioExporter:
         """
         Get various properties of mailboxes
 
-        grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "["} {if ($1=="exmdb") { if (first==1) { printf "],["} else {first=1}}; if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf "]" }'
+        grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "["} {if ($1=="") {next}; if ($1=="exmdb") { if (first==1) { printf "],["} else {first=1}}; if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf "]" }'
         """
         mailbox_properties = {}
-        awk_cmd = r"""awk 'BEGIN {printf "["} {if ($1=="exmdb") { if (first==1) { printf "],["} else {first=1}}; if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf "]" }'"""
+        awk_cmd = r"""awk 'BEGIN {printf "["} {if ($1=="") {next}; if ($1=="exmdb") { if (first==1) { printf "],["} else {first=1}}; if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf "]" }'"""
         grommunio_shell_cmds = ""
         for username in usernames:
             grommunio_shell_cmds += f"exmdb {username} store get\n"
