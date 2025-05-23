@@ -266,7 +266,9 @@ class GrommunioExporter:
                                 *labels
                             ).set(value)
         except (TypeError, AttributeError, KeyError, IndexError, ValueError) as exc:
-            logger.error(f"Cannot iter over mailbox properties while updating gauges: {exc}")
+            logger.error(
+                f"Cannot iter over mailbox properties while updating gauges: {exc}"
+            )
             logger.debug("Trace:", exc_info=True)
             self.api_status = False
 
