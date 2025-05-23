@@ -7,9 +7,9 @@ __appname__ = "grommunio_exporter"
 __author__ = "Orsiris de Jong"
 __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
-__copyright__ = "Copyright (C) 2024 NetInvent"
+__copyright__ = "Copyright (C) 2024-2025 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2024110501"
+__build__ = "2025052301"
 
 from typing import List
 from ofunctions.misc import fn_name
@@ -160,7 +160,7 @@ class GrommunioExporter:
                     self.hostname, domain
                 ).set(len(users))
         except (TypeError, AttributeError, KeyError, IndexError, ValueError) as exc:
-            logger.error(f"Cannot iter over mailboxes: {exc}")
+            logger.error(f"Cannot iter over mailboxes while updating gauges: {exc}")
             logger.debug("Trace:", exc_info=True)
             self.api_status = False
 
@@ -194,14 +194,20 @@ class GrommunioExporter:
         """
         Get various properties of mailboxes
 
+        # Old way to transform grommunio-admin shell output into json list
         grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "[["} {if ($1=="") {next}; if ($1=="exmdb") {sep=""; if (first==1) { printf "],["} else {first=1}}; if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf "]]" }'
+
+        # New way to transform grommunio-admin shell multiple json blocks output into json list
+        # We also need to extract the username from our query and insert it into the json... !!! horay
+        grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { print substr($0, 2) } END {printf "]]\n"}'
         """
+
         mailbox_properties = {}
-        awk_cmd = r"""awk 'BEGIN {printf "[["} {if ($1=="") {next}; if ($1=="exmdb") {sep=""; if (first==1) { printf "],["} else {first=1}}; if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf "]]" }'"""
+        awk_cmd = r"""awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { print substr($0, 2) } END {printf "]]\n"}'"""
         grommunio_shell_cmds = ""
         for username in usernames:
-            grommunio_shell_cmds += f"exmdb {username} store get\n"
-        cmd = f"{self.cli_binary} shell -x << EOF 2>/dev/null | {awk_cmd}\n{grommunio_shell_cmds}\nEOF"
+            grommunio_shell_cmds += f"exmdb {username} store get --format json-kv\n"
+        cmd = f"{self.cli_binary} shell -x << EOF 2>/dev/null | {awk_cmd} \n{grommunio_shell_cmds}\nEOF"
 
         exit_code, result = command_runner(cmd, shell=True)
         if exit_code == 0:
@@ -229,7 +235,7 @@ class GrommunioExporter:
                 for entry in mailbox_prop:
                     for key, value in entry.items():
                         # We must have exmdb key before others
-                        if key == "exmdb":
+                        if key == "username":
                             username = value
                             domain = self._get_domain_from_username(username)
                             labels = (self.hostname, domain, username)
@@ -260,7 +266,7 @@ class GrommunioExporter:
                                 *labels
                             ).set(value)
         except (TypeError, AttributeError, KeyError, IndexError, ValueError) as exc:
-            logger.error(f"Cannot iter over mailbox properties: {exc}")
+            logger.error(f"Cannot iter over mailbox properties while updating gauges: {exc}")
             logger.debug("Trace:", exc_info=True)
             self.api_status = False
 
