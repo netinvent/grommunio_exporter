@@ -67,7 +67,7 @@ The exporter currently produces the following metrics:
 - `grommunio_mailbox_count`
 - `grommunio_shared_mailbox_count`
 
-The follwoing metrics are per user and have labels `hostname,domain,username`:
+The following metrics are per user and have labels `hostname,domain,username`:
 
 - `grommunio_mailbox_messagesize`
 - `grommunio_mailbox_storage_quota_limit`
@@ -103,7 +103,7 @@ This file can override the following:
 - grommunio hostname
 - path to grommunio-admin
 
-### Troubeshooting
+### Troubleshooting
 
 This program has currently been tested on grommunio-admin-api-1.16.8.
 

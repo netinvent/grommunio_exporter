@@ -222,7 +222,7 @@ class GrommunioExporter:
                 f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
             )
             self.api_status = False
-            # Since we used awk, we should definitly reset the output
+            # Since we used awk, we should definitely reset the output
             mailbox_properties = {}
 
         return mailbox_properties
