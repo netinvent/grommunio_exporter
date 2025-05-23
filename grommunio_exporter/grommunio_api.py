@@ -29,10 +29,6 @@ from grommunio_exporter.__debug__ import _DEBUG
 
 logger = logging.getLogger()
 
-MBOX_PROP_RE = re.compile(
-    r"exmdb\s([a-z0-9\._%+!$&*=^|~#%'`?{}\/\-]+@([a-z0-9\-]+\.){1,}([a-z]{2,16}))\sstore\sget\nmessagesizeextended\s+(\d+).*\n.*\ndisplayname.*\ncreationtime\s+(\d+).*\n.*\nstoragequotalimit\s+(\d+).*\n.*\n.*\nprohibitreceivequota\s+(\d+).*\nprohibitsendquota\s+(\d+)"
-)
-
 
 class GrommunioExporter:
     """
