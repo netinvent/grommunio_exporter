@@ -21,6 +21,7 @@ from prometheus_client import Summary, Gauge, Enum
 from command_runner import command_runner
 from ofunctions.misc import BytesConverter
 from grommunio_exporter.filetime import convert_from_file_time
+from grommunio_exporter.__version__ import __version__
 
 # from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily, REGISTRY
 
@@ -44,16 +45,22 @@ class GrommunioExporter:
         self.api_status = True
 
         # Register gauges
+        self.gauge_grommunio_exporter_version = Gauge(
+            "grommunio_exporter_version",
+            "Grommunio Exporter version",
+            ["hostname", "version"],
+        )
+
         self.gauge_grommunio_gromox_version = Gauge(
             "grommunio_gromox_version",
             "Grommunio Gromox version",
-            ["hostname"],
+            ["hostname", "version"],
         )
 
         self.gauge_grommunio_admin_version = Gauge(
             "grommunio_admin_version",
             "Grommunio Admin version",
-            ["hostname"],
+            ["hostname", "version"],
         )
 
         self.gauge_grommunio_api_status = Gauge(
@@ -104,16 +111,15 @@ class GrommunioExporter:
         )
 
     def get_grommunio_versions(self):
+        versions = {
+            "grommunio_exporter": __version__,
+            "grommunio_admin": "unknown",
+            "gromox": "unknown",
+        }
         cmd = "{self.cli_binary} version"
         exit_code, result = command_runner(cmd, timeout=10)
         if exit_code == 0:
-            self.gauge_grommunio_admin_version.labels(
-                self.hostname, version=result
-            ).set(0)
-        else:
-            self.gauge_grommunio_admin_version.labels(
-                self.hostname, version="unknown"
-            ).set(1)
+            versions["grommunio_admin"] = result.strip()
 
         cmd = "{self.gromox_binary} --version"
         exit_code, result = command_runner(cmd, timeout=10)
@@ -121,15 +127,19 @@ class GrommunioExporter:
             version = re.search(r"gromox-zcore\s(.*)\s\(pid.*", result)
             if version:
                 version = version.group(1)
-            else:
-                version = "unknown"
-            self.gauge_grommunio_gromox_version.labels(
-                self.hostname, version=version
-            ).set(0)
-        else:
-            self.gauge_grommunio_gromox_version.labels(
-                self.hostname, version="unknown"
-            ).set(1)
+                versions["gromox"] = version.strip()
+
+    def update_grommunio_versions_gauge(self, version: dict):
+        self.gauge_grommunio_exporter_version.labels(
+            self.hostname, version=version["grommunio_exporter"]
+        ).set(0)
+
+        self.gauge_grommunio_admin_version.labels(
+            self.hostname, version=version["grommunio_admin"]
+        ).set(0 if version["grommunio_admin"] != "unknown" else 1)
+        self.gauge_grommunio_gromox_version.labels(
+            self.hostname, version=version["gromox"]
+        ).set(0 if version["gromox"] != "unknown" else 1)
 
     def _get_domain_from_username(self, username: str):
         if "@" in username:
@@ -335,6 +345,9 @@ if __name__ == "__main__":
         gromox_binary="/usr/libexec/gromox/zcore",
         hostname="test-script",
     )
+    print("Getting Grommunio versions")
+    versions = api.get_grommunio_versions()
+    print(versions)
     mailboxes = api.get_mailboxes()
     print("Found mailboxes:")
     print(mailboxes)
@@ -345,6 +358,8 @@ if __name__ == "__main__":
     print("Mailbox properties:")
     print(mailbox_properties)
 
+    print("Updating gauges for Grommunio versions")
+    api.update_grommunio_versions_gauges(versions)
     print("Updating gauges for mailboxes")
     api.update_mailbox_gauges(mailboxes)
     print("Updating gauges for mailbox properties")
