@@ -108,13 +108,13 @@ class GrommunioExporter:
         exit_code, result = command_runner(cmd, timeout=10)
         if exit_code == 0:
             self.gauge_grommunio_admin_version.labels(
-                    self.hostname, version=result
-                ).set(0)
+                self.hostname, version=result
+            ).set(0)
         else:
             self.gauge_grommunio_admin_version.labels(
-                    self.hostname, version="unknown"
-                ).set(1)
-            
+                self.hostname, version="unknown"
+            ).set(1)
+
         cmd = "{self.gromox_binary} --version"
         exit_code, result = command_runner(cmd, timeout=10)
         if exit_code == 0:
@@ -124,13 +124,12 @@ class GrommunioExporter:
             else:
                 version = "unknown"
             self.gauge_grommunio_gromox_version.labels(
-                    self.hostname, version=version
-                ).set(0)
+                self.hostname, version=version
+            ).set(0)
         else:
             self.gauge_grommunio_gromox_version.labels(
-                    self.hostname, version="unknown"
-                ).set(1)
-
+                self.hostname, version="unknown"
+            ).set(1)
 
     def _get_domain_from_username(self, username: str):
         if "@" in username:
@@ -332,7 +331,9 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     print("Running test API calls")
     api = GrommunioExporter(
-        cli_binary="/usr/sbin/grommunio-admin", gromox_binary="/usr/libexec/gromox/zcore", hostname="test-script"
+        cli_binary="/usr/sbin/grommunio-admin",
+        gromox_binary="/usr/libexec/gromox/zcore",
+        hostname="test-script",
     )
     mailboxes = api.get_mailboxes()
     print("Found mailboxes:")

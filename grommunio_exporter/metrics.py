@@ -75,7 +75,9 @@ metrics_app = prometheus_client.make_asgi_app()
 app.mount("/metrics", metrics_app)
 security = HTTPBasic()
 
-api = GrommunioExporter(cli_binary=cli_binary, gromox_binary=gromox_binary, hostname=hostname)
+api = GrommunioExporter(
+    cli_binary=cli_binary, gromox_binary=gromox_binary, hostname=hostname
+)
 
 
 def run_metrics():
