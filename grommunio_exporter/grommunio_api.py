@@ -129,7 +129,7 @@ class GrommunioExporter:
                 version = version.group(1)
                 versions["gromox"] = version.strip()
 
-    def update_grommunio_versions_gauge(self, version: dict):
+    def update_grommunio_versions_gauges(self, version: dict):
         self.gauge_grommunio_exporter_version.labels(
             self.hostname, version=version["grommunio_exporter"]
         ).set(0)
