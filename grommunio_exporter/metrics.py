@@ -86,11 +86,11 @@ def run_metrics():
     """
     # Let's reset api status first
     api.api_status_reset()
-    api.get_grommunio_versions()
+    versions = api.get_grommunio_versions()
     mailboxes = api.get_mailboxes()
     usernames = api.get_usernames_from_mailboxes(mailboxes, filter_no_domain=True)
     mailbox_properties = api.get_mailbox_properties(usernames)
-    api.update_grommunio_versions_gauges()
+    api.update_grommunio_versions_gauges(versions)
     api.update_mailbox_gauges(mailboxes)
     api.update_mailbox_properties_gauges(mailbox_properties)
     api.update_api_gauges()
