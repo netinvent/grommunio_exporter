@@ -107,7 +107,7 @@ class GrommunioExporter:
         cmd = "{self.cli_binary} version"
         exit_code, result = command_runner(cmd, timeout=10)
         if exit_code == 0:
-            self.gauge_grommunio_grommunio_admin_version.labels(
+            self.gauge_grommunio_admin_version.labels(
                     self.hostname, version=result
                 ).set(0)
         else:
@@ -332,7 +332,7 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     print("Running test API calls")
     api = GrommunioExporter(
-        cli_binary="/usr/sbin/grommunio-admin", hostname="test-script"
+        cli_binary="/usr/sbin/grommunio-admin", gromox_binary="/usr/libexec/gromox/zcore", hostname="test-script"
     )
     mailboxes = api.get_mailboxes()
     print("Found mailboxes:")
