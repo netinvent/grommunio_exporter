@@ -116,12 +116,12 @@ class GrommunioExporter:
             "grommunio_admin": "unknown",
             "gromox": "unknown",
         }
-        cmd = "{self.cli_binary} version"
+        cmd = f"{self.cli_binary} version"
         exit_code, result = command_runner(cmd, timeout=10)
         if exit_code == 0:
             versions["grommunio_admin"] = result.strip()
 
-        cmd = "{self.gromox_binary} --version"
+        cmd = f"{self.gromox_binary} --version"
         exit_code, result = command_runner(cmd, timeout=10)
         if exit_code == 0:
             version = re.search(r"gromox-zcore\s(.*)\s\(pid.*", result)
