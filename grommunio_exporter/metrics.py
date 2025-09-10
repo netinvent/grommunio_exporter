@@ -92,7 +92,7 @@ def run_metrics():
     except Exception as exc:
         logger.error(f"Cannot get grommunio versions: {exc}")
         logger.error("Trace", exc_info=True)
-    
+
     try:
         mailboxes = api.get_mailboxes()
         usernames = api.get_usernames_from_mailboxes(mailboxes, filter_no_domain=True)
@@ -103,6 +103,7 @@ def run_metrics():
     except Exception as exc:
         logger.error(f"Cannot get mailboxes or mailbox properties: {exc}")
         logger.error("Trace", exc_info=True)
+
 
 def anonymous_auth():
     return "anonymous"
