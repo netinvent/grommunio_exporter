@@ -72,9 +72,9 @@ firewall-cmd --add-port=9799/tcp --permanent && firewall-cmd --reload
 The exporter currently produces the following metrics:  
 
 - `grommunio_api_status` is 0 when no errors where found in api calls
-- `grommunio_exporter_version` is 0 when version succesfully reported
-- `grommunio_gromox_version` is 0 when version succesfully reported
-- `grommunio_admin_version` is 0 when version succesfully reported
+- `grommunio_exporter_version` is 0 when version successfully reported
+- `grommunio_gromox_version` is 0 when version successfully reported
+- `grommunio_admin_version` is 0 when version successfully reported
 - `grommunio_mailbox_count`
 - `grommunio_shared_mailbox_count`
 
