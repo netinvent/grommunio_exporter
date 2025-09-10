@@ -128,6 +128,7 @@ class GrommunioExporter:
             if version:
                 version = version.group(1)
                 versions["gromox"] = version.strip()
+        return versions
 
     def update_grommunio_versions_gauges(self, version: dict):
         self.gauge_grommunio_exporter_version.labels(
