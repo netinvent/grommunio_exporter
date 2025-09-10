@@ -132,14 +132,14 @@ class GrommunioExporter:
 
     def update_grommunio_versions_gauges(self, version: dict):
         self.gauge_grommunio_exporter_version.labels(
-            self.hostname, version=version["grommunio_exporter"]
+            self.hostname, version["grommunio_exporter"]
         ).set(0)
 
         self.gauge_grommunio_admin_version.labels(
-            self.hostname, version=version["grommunio_admin"]
+            self.hostname, version["grommunio_admin"]
         ).set(0 if version["grommunio_admin"] != "unknown" else 1)
         self.gauge_grommunio_gromox_version.labels(
-            self.hostname, version=version["gromox"]
+            self.hostname, version["gromox"]
         ).set(0 if version["gromox"] != "unknown" else 1)
 
     def _get_domain_from_username(self, username: str):
