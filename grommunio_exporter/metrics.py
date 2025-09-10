@@ -9,7 +9,7 @@ __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
 __copyright__ = "Copyright (C) 2024-2025 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2024111001"
+__build__ = "2025091001"
 
 
 import sys
@@ -62,6 +62,9 @@ http_no_auth = config_dict.g("http_server.no_auth")
 cli_binary = config_dict.g("grommunio.cli_binary")
 if not cli_binary:
     cli_binary = "/usr/sbin/grommunio-admin"
+gromox_binary = config_dict.g("grommunio.gromox_binary")
+if not gromox_binary:
+    gromox_binary = "/usr/libexec/gromox/zcore"
 hostname = config_dict.g("grommunio.hostname")
 if not hostname:
     hostname = socket.getfqdn()
@@ -72,7 +75,7 @@ metrics_app = prometheus_client.make_asgi_app()
 app.mount("/metrics", metrics_app)
 security = HTTPBasic()
 
-api = GrommunioExporter(cli_binary=cli_binary, hostname=hostname)
+api = GrommunioExporter(cli_binary=cli_binary, gromox_binary=gromox_binary, hostname=hostname)
 
 
 def run_metrics():

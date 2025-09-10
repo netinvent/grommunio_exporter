@@ -9,7 +9,7 @@ __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
 __copyright__ = "Copyright (C) 2024-2025 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2025052301"
+__build__ = "2025091001"
 
 from typing import List
 from ofunctions.misc import fn_name
@@ -35,14 +35,27 @@ class GrommunioExporter:
     Python class to discuss with grommunio CLI
     """
 
-    def __init__(self, cli_binary: Path, hostname: str):
+    def __init__(self, cli_binary: Path, gromox_binary: Path, hostname: str):
         self.cli_binary = cli_binary
+        self.gromox_binary = gromox_binary
         self.hostname = hostname
 
         # API status variable
         self.api_status = True
 
         # Register gauges
+        self.gauge_grommunio_gromox_version = Gauge(
+            "grommunio_gromox_version",
+            "Grommunio Gromox version",
+            ["hostname"],
+        )
+
+        self.gauge_grommunio_admin_version = Gauge(
+            "grommunio_admin_version",
+            "Grommunio Admin version",
+            ["hostname"],
+        )
+
         self.gauge_grommunio_api_status = Gauge(
             "grommunio_api_status", "Is API working ? 0 = ok, 1 = nok", ["hostname"]
         )
@@ -89,6 +102,35 @@ class GrommunioExporter:
         REQUEST_TIME = Summary(
             "request_processing_seconds", "Time spent processing request"
         )
+
+    def get_grommunio_versions(self):
+        cmd = "{self.cli_binary} version"
+        exit_code, result = command_runner(cmd, timeout=10)
+        if exit_code == 0:
+            self.gauge_grommunio_grommunio_admin_version.labels(
+                    self.hostname, version=result
+                ).set(0)
+        else:
+            self.gauge_grommunio_admin_version.labels(
+                    self.hostname, version="unknown"
+                ).set(1)
+            
+        cmd = "{self.gromox_binary} --version"
+        exit_code, result = command_runner(cmd, timeout=10)
+        if exit_code == 0:
+            version = re.search(r"gromox-zcore\s(.*)\s\(pid.*", result)
+            if version:
+                version = version.group(1)
+            else:
+                version = "unknown"
+            self.gauge_grommunio_gromox_version.labels(
+                    self.hostname, version=version
+                ).set(0)
+        else:
+            self.gauge_grommunio_gromox_version.labels(
+                    self.hostname, version="unknown"
+                ).set(1)
+
 
     def _get_domain_from_username(self, username: str):
         if "@" in username:

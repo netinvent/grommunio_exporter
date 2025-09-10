@@ -9,4 +9,5 @@ http_server:
 grommunio:
   # Optional overrides
   cli_binary: /usr/sbin/grommunio-admin
+  gromox_binary: /usr/libexec/gromox/zcore
   alternative_hostname:
