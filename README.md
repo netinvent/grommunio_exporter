@@ -135,7 +135,7 @@ scrape_timeout: 240s
 
 ### Troubleshooting python pip on Grommunio Appliances
 
-There maybe errros with python 3.6 pip that is installed in Grommunio appliances based on OpenSuse 15.5/15.6.
+There maybe errors with python 3.6 pip that is installed in Grommunio appliances based on OpenSuse 15.5/15.6.
 If running pip shows the following error:
 ```
 Traceback (most recent call last):
