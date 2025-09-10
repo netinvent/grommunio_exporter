@@ -30,6 +30,14 @@ Easiest way to install grommunio_exporter is to use python pip:
 python3 -m pip install grommunio_exporter
 ```
 
+### Upgrading
+
+Upgrading can be done via following command lines
+```
+python3 -m pip install --upgrade grommunio_exporter
+systemctl restart grommunio_exporter
+```
+
 #### Special notes for Grommunio appliances
 Note that on Grommunio appliances based on OpenSuSE 15.5, you'll have to install pip first and update wheel package via the following commands.
 Also note that installing the requested requirements for grommunio_exporter will fail if `pip` and `wheel` package isn't up to date in the Grommunio appliance (zypper installs pip 10.0.1, and pip 21.3.1 is required). 
