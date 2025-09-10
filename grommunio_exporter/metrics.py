@@ -86,15 +86,23 @@ def run_metrics():
     """
     # Let's reset api status first
     api.api_status_reset()
-    versions = api.get_grommunio_versions()
-    mailboxes = api.get_mailboxes()
-    usernames = api.get_usernames_from_mailboxes(mailboxes, filter_no_domain=True)
-    mailbox_properties = api.get_mailbox_properties(usernames)
-    api.update_grommunio_versions_gauges(versions)
-    api.update_mailbox_gauges(mailboxes)
-    api.update_mailbox_properties_gauges(mailbox_properties)
-    api.update_api_gauges()
-
+    try:
+        versions = api.get_grommunio_versions()
+        api.update_grommunio_versions_gauges(versions)
+    except Exception as exc:
+        logger.error(f"Cannot get grommunio versions: {exc}")
+        logger.error("Trace", exc_info=True)
+    
+    try:
+        mailboxes = api.get_mailboxes()
+        usernames = api.get_usernames_from_mailboxes(mailboxes, filter_no_domain=True)
+        mailbox_properties = api.get_mailbox_properties(usernames)
+        api.update_mailbox_gauges(mailboxes)
+        api.update_mailbox_properties_gauges(mailbox_properties)
+        api.update_api_gauges()
+    except Exception as exc:
+        logger.error(f"Cannot get mailboxes or mailbox properties: {exc}")
+        logger.error("Trace", exc_info=True)
 
 def anonymous_auth():
     return "anonymous"
