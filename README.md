@@ -133,6 +133,38 @@ scrape_interval: 300s
 scrape_timeout: 240s
 ```
 
+### Troubleshooting python pip on Grommunio Appliances
+
+There maybe errros with python 3.6 pip that is installed in Grommunio appliances based on OpenSuse 15.5/15.6.
+If running pip shows the following error:
+```
+Traceback (most recent call last):
+  File "/usr/lib64/python3.6/runpy.py", line 193, in _run_module_as_main
+    "__main__", mod_spec)
+  File "/usr/lib64/python3.6/runpy.py", line 85, in _run_code
+    exec(code, run_globals)
+  File "/usr/lib/python3.6/site-packages/pip/__main__.py", line 16, in <module>
+    from pip._internal.cli.main import main as _main  # isort:skip # noqa
+  File "/usr/lib/python3.6/site-packages/pip/_internal/cli/main.py", line 10, in <module>
+    from pip._internal.cli.autocompletion import autocomplete
+  File "/usr/lib/python3.6/site-packages/pip/_internal/cli/autocompletion.py", line 9, in <module>
+    from pip._internal.cli.main_parser import create_main_parser
+  File "/usr/lib/python3.6/site-packages/pip/_internal/cli/main_parser.py", line 7, in <module>
+    from pip._internal.cli import cmdoptions
+  File "/usr/lib/python3.6/site-packages/pip/_internal/cli/cmdoptions.py", line 25, in <module>
+    from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
+  File "/usr/lib/python3.6/site-packages/pip/_internal/locations/__init__.py", line 9, in <module>
+    from pip._internal.models.scheme import SCHEME_KEYS, Scheme
+ImportError: cannot import name 'SCHEME_KEYS'
+```
+
+You may want to reinstall a newer version of pip with the following command:
+```
+rm -rf /usr/lib/python3.6/site-packages/setuptools*
+rm -rf /usr/lib/python3.6/site-packages/pip*
+python3 -m ensurepip
+```
+
 ### Misc
 
 This version of the grommunio exporter uses the locally installed grommunio-admin cli interface instead of the REST API.  
