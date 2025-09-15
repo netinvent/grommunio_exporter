@@ -9,7 +9,7 @@ __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
 __copyright__ = "Copyright (C) 2024-2025 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2025091001"
+__build__ = "2025091501"
 
 
 import sys
@@ -65,9 +65,15 @@ if not cli_binary:
 gromox_binary = config_dict.g("grommunio.gromox_binary")
 if not gromox_binary:
     gromox_binary = "/usr/libexec/gromox/zcore"
-hostname = config_dict.g("grommunio.hostname")
+hostname = config_dict.g("grommunio.alternative_hostname")
 if not hostname:
-    hostname = socket.getfqdn()
+    try:
+        hostname = socket.getfqdn()
+        if not hostname or hostname == "localhost":
+            hostname = socket.gethostname()
+    except socket.gaierror:
+        hostname = "not_resolvable_hostname"
+        logger.error("Cannot resolve hostname, using 'not_resolvable_hostname'")
 
 
 app = FastAPIOffline()
