@@ -247,11 +247,11 @@ class GrommunioExporter:
 
         # New way to transform grommunio-admin shell multiple json blocks output into json list
         # We also need to extract the username from our query and insert it into the json... !!! horay
-        grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { print substr($0, 2) } END {printf "]]\n"}'
+        grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { gsub("\\\\\"settings.*", "}\"}", $0); print substr($0, 2) } END {printf "]]\n"}'
         """
 
         mailbox_properties = {}
-        awk_cmd = r"""awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { print substr($0, 2) } END {printf "]]\n"}'"""
+        awk_cmd = r"""awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { gsub("\\\\\"settings.*", "}\"}", $0); print substr($0, 2) } END {printf "]]\n"}'"""
         grommunio_shell_cmds = ""
         for username in usernames:
             grommunio_shell_cmds += f"exmdb {username} store get --format json-kv\n"
