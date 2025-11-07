@@ -12,7 +12,7 @@ grommunio:
   mysql_password: database_password
   mysql_database: grommunio
   mysql_host: localhost
+  mysql_port: 3306
   # Optional overrides
-  cli_binary: /usr/sbin/grommunio-admin
   gromox_binary: /usr/libexec/gromox/zcore
   alternative_hostname:

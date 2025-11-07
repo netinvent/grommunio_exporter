@@ -26,6 +26,7 @@ import socket
 from grommunio_exporter.__version__ import __version__
 from grommunio_exporter.configuration import load_config, get_default_config
 from grommunio_exporter.grommunio_api import GrommunioExporter
+from grommunio_exporter.mysql_config import load_mysql_config
 
 logger = getLogger()
 
@@ -80,20 +81,18 @@ if not mysql_host:
 mysql_port = config_dict.g("grommunio.mysql_port")
 if not mysql_port:
     mysql_port = 3306
-if not mysql_username or not mysql_password or not mysql_database:
-    logger.critical(
-        "Mysql username, password or database not set in configuration, cannot continue"
-    )
-    sys.exit(1)
-else:
-    mysql_config = {
-        "user": mysql_username,
-        "password": mysql_password,
-        "host": mysql_host,
-        "port": mysql_port,
-        "database": mysql_database
-    }
 
+mysql_config = load_mysql_config()
+if mysql_username:
+    mysql_config["user"] = mysql_username
+if mysql_password:
+    mysql_config["password"] = mysql_password
+if mysql_database:
+    mysql_config["database"] = mysql_database
+if mysql_host:
+    mysql_config["host"] = mysql_host
+if mysql_port:
+    mysql_config["port"] = mysql_port
 
 app = FastAPIOffline()
 metrics_app = prometheus_client.make_asgi_app()

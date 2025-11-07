@@ -375,18 +375,8 @@ class GrommunioExporter:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     print("Running test API calls")
-    import configparser
-    config = configparser.ConfigParser()
-    with open("/etc/gromox/mysql_adaptor.cfg") as stream:
-        config.read_string("[top]\n" + stream.read())
-
-    mysql_config = {
-        "user": config["top"]["mysql_username"],
-        "password": config["top"]["mysql_password"],
-        "database": config["top"]["mysql_dbname"],
-        "host": "localhost",
-        "port": 3306,
-    }
+    from grommunio_exporter.mysql_config import load_mysql_config
+    mysql_config = load_mysql_config()
     api = GrommunioExporter(
         mysql_config=mysql_config,
         gromox_binary="/usr/libexec/gromox/zcore",
