@@ -236,39 +236,31 @@ class GrommunioExporter:
 
     def _get_mailbox_properties(self, usernames: List[str]):
         """
-        Get various properties of mailboxes
+        In Grommunio database:
 
-        # Old way to transform grommunio-admin shell output into json list
-        grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "[["} {if ($1=="") {next}; if ($1=="exmdb") {sep=""; if (first==1) { printf "],["} else {first=1}}; if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf "]]" }'
+        Hex         Proptag         Name                      Type
+        0x666a0003  1718222851     PROHIBITRECEIVEQUOTA       LONG
+        0x0e080014  235405332      MESSAGESIZEEXTENDED        LONGLONG
+        0x0e230003  237174787      INTERNETARTICLENUMBER      LONG
+        0x3001001f  805371935      DISPLAYNAME                WSTRING
+        0x39050003  956628995      DISPLAYTYPEEX              LONG
+        0x3ff50003  1073020931     STORAGEQUOTALIMIT          LONG
+        0x661d000b  1713176587     OUTOFOFFICESTATE           BYTE
+        0x666a0003  1718222851     PROHIBITRECEIVEQUOTA       LONG
+        0x666e0003  1718484995     PROHIBITSENDQUOTA          LONG
+        0x66b30014  1723006996     NORMALMESSAGESIZEEXTENDED  LONGLONG
+        0x66b40014  1723072532     ASSOCMESSAGESIZEEXTENDED   LONGLONG
+        0x30070040  805765184      CREATIONTIME               FILETIME
 
-        # New way to transform grommunio-admin shell multiple json blocks output into json list
-        # We also need to extract the username from our query and insert it into the json... !!! horay
-        grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { gsub("\\\\\"settings.*", "}\"}", $0); print substr($0, 2) } END {printf "]]\n"}'
+        
+        SELECT users.id, users.username, user_properties.proptag, user_properties.propval_str FROM user_properties INNER JOIN users ON user_properties.user_id=users.id WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995, 805765184);
         """
 
         mailbox_properties = {}
-        awk_cmd = r"""awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { gsub("\\\\\"settings.*", "}\"}", $0); print substr($0, 2) } END {printf "]]\n"}'"""
-        grommunio_shell_cmds = ""
-        for username in usernames:
-            grommunio_shell_cmds += f"exmdb {username} store get --format json-kv\n"
-        cmd = f"{self.cli_binary} shell -x << EOF 2>/dev/null | {awk_cmd} \n{grommunio_shell_cmds}\nEOF"
 
-        exit_code, result = command_runner(cmd, shell=True)
-        if exit_code == 0:
-            try:
-                mailbox_properties = json.loads(result)
-            except json.JSONDecodeError as exc:
-                logger.error(f"Cannot decode JSON: {exc}")
-                logger.debug("Trace:", exc_info=True)
-                self.api_status = False
-        else:
-            logger.error(
-                f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
-            )
-            self.api_status = False
-            # Since we used awk, we should definitely reset the output
-            mailbox_properties = {}
-
+        query = "SELECT users.id, users.username, user_properties.proptag, user_properties.propval_str FROM user_properties INNER JOIN users ON user_properties.user_id=users.id WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995, 805765184);"
+        self.mysql_cursor.execute(query)
+        mailbox_properties = self.mysql_cursor.fetchall()
         return mailbox_properties
 
     def update_mailbox_properties_gauges(self, mailbox_properties: dict):
