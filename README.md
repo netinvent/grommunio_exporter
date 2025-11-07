@@ -8,6 +8,11 @@
 This program exposes Grommunio email system metrics for Prometheus  
 Since we already have node_exporter for system metrics and postfix_exporter for email deliverability metrics, this closes the gap with mailbox metrics.
 
+### Requirements
+
+- Grommunio 2.x
+- python >= 3.7
+
 
 ### Grafana Dashboard
 
@@ -39,7 +44,7 @@ systemctl restart grommunio_exporter
 ```
 
 #### Special notes for Grommunio appliances
-Note that on Grommunio appliances based on OpenSuSE 15.5, you'll have to install pip first and update wheel package via the following commands.
+Note that on Grommunio appliances based on OpenSuSE 15.6, you'll have to install pip first and update wheel package via the following commands.
 Also note that installing the requested requirements for grommunio_exporter will fail if `pip` and `wheel` package isn't up to date in the Grommunio appliance (zypper installs pip 10.0.1, and pip 21.3.1 is required). 
 Lastly, the message `pygobject 3.42.2 requires pycairo>=1.16.0, which is not installed.` can be ignored on these systems.  
 ```
@@ -85,6 +90,7 @@ The following metrics are per user and have labels `hostname,domain,username`:
 - `grommunio_mailbox_prohibit_receive_limit`
 - `grommunio_mailbox_prohibit_send_quota`
 - `grommunio_mailbox_creation_time`
+- `gauge_grommunio_mailbox_out_of_office_state`
 
 
 ### Alert rules:
@@ -110,9 +116,8 @@ This file can override the following:
 - http listen ip
 - http listen port
 - http authentication
-- grommunio api concurrency
 - grommunio hostname
-- path to grommunio-admin
+
 
 ### Troubleshooting
 
@@ -122,10 +127,6 @@ By default, the exporter will log to `/var/log/grommunio_exporter.log`
 You can override this in the config file.
 
 You may also run the exporter with `--debug` in order to gain more information.
-
-In order to be quick, `grommunio_exporter` uses concurrency to the grommunio_api.
-By default, this concurrency is set to 4. You can increase the concurrency if querying is to slow.
-Nevertheless, you should never query more than every 5 minutes to keep the server load down.
 
 You can set the following scrape settings in the prometheus job:
 ```
