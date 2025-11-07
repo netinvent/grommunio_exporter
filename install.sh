@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Installer script for grommunio_exporter on Grommunio OpenSuSE based appliances
-# Script 2024111101
+# Installer script for grommunio_exporter on Grommunio OpenSuSE 15.6 based appliances
+# Script 2025110701
 
 LOG_FILE=./install_grommunio_exporter.log
 SCRIPT_GOOD=true
