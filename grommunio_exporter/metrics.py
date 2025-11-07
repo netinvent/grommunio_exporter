@@ -9,7 +9,7 @@ __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
 __copyright__ = "Copyright (C) 2024-2025 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2025091501"
+__build__ = "2025110701"
 
 
 import sys
@@ -26,6 +26,7 @@ import socket
 from grommunio_exporter.__version__ import __version__
 from grommunio_exporter.configuration import load_config, get_default_config
 from grommunio_exporter.grommunio_api import GrommunioExporter
+from grommunio_exporter.mysql_config import load_mysql_config
 
 logger = getLogger()
 
@@ -59,9 +60,6 @@ else:
 http_username = config_dict.g("http_server.username")
 http_password = config_dict.g("http_server.password")
 http_no_auth = config_dict.g("http_server.no_auth")
-cli_binary = config_dict.g("grommunio.cli_binary")
-if not cli_binary:
-    cli_binary = "/usr/sbin/grommunio-admin"
 gromox_binary = config_dict.g("grommunio.gromox_binary")
 if not gromox_binary:
     gromox_binary = "/usr/libexec/gromox/zcore"
@@ -74,7 +72,27 @@ if not hostname:
     except socket.gaierror:
         hostname = "not_resolvable_hostname"
         logger.error("Cannot resolve hostname, using 'not_resolvable_hostname'")
+mysql_username = config_dict.g("grommunio.mysql_username")
+mysql_password = config_dict.g("grommunio.mysql_password")
+mysql_database = config_dict.g("grommunio.mysql_database")
+mysql_host = config_dict.g("grommunio.mysql_host")
+if not mysql_host:
+    mysql_host = "localhost"
+mysql_port = config_dict.g("grommunio.mysql_port")
+if not mysql_port:
+    mysql_port = 3306
 
+mysql_config = load_mysql_config()
+if mysql_username:
+    mysql_config["user"] = mysql_username
+if mysql_password:
+    mysql_config["password"] = mysql_password
+if mysql_database:
+    mysql_config["database"] = mysql_database
+if mysql_host:
+    mysql_config["host"] = mysql_host
+if mysql_port:
+    mysql_config["port"] = mysql_port
 
 app = FastAPIOffline()
 metrics_app = prometheus_client.make_asgi_app()
@@ -82,7 +100,7 @@ app.mount("/metrics", metrics_app)
 security = HTTPBasic()
 
 api = GrommunioExporter(
-    cli_binary=cli_binary, gromox_binary=gromox_binary, hostname=hostname
+    mysql_config=mysql_config, gromox_binary=gromox_binary, hostname=hostname
 )
 
 

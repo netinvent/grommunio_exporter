@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Installer script for grommunio_exporter on Grommunio OpenSuSE based appliances
-# Script 2024111101
+# Installer script for grommunio_exporter on Grommunio OpenSuSE 15.6 based appliances
+# Script 2025110701
 
 LOG_FILE=./install_grommunio_exporter.log
 SCRIPT_GOOD=true
@@ -28,11 +28,10 @@ function log_quit {
 
 log "#### Setup grommunio_exporter"
 
-log "Installing python3-pip package"
-
-zypper install -y python3-pip || log_quit "Cannot install python3-pip"
-python3 -m pip install --upgrade pip setuptools wheel || log "Failed to update python pip/setuptools/wheel" "ERROR"
-python3 -m pip install grommunio_exporter || log_quit "Failed to install grommunio_exporter"
+log "Setting up venv environment"
+python3.11 -m venv /usr/local/grommunio_exporter_venv || log_quit "Cannot create python venv" "ERROR"
+/usr/local/grommunio_exporter_venv/bin/python -m pip install --upgrade pip setuptools wheel || log_quit "Cannot update pip/setuptools/wheel in venv" "ERROR"
+/usr/local/grommunio_exporter_venv/bin/python -m pip install grommunio_exporter || log_quit "Cannot install grommunio_exporter in venv" "ERROR"
 
 log "Setup systemd unit file"
 
@@ -48,7 +47,7 @@ Type=simple
 # You may prefer to use a different user or group on your system.
 #User=grommunio
 #Group=grommunio
-ExecStart=/usr/bin/grommunio_exporter -c /etc/grommunio_exporter.yaml
+ExecStart=/usr/local/grommunio_exporter_venv/bin/python /usr/bin/grommunio_exporter -c /etc/grommunio_exporter.yaml
 Restart=always
 RestartSec=60
 
@@ -57,6 +56,7 @@ WantedBy=multi-user.target
 EOF
 [ $? -eq 0 ] || log "Failed to setup systemd unit file" "ERROR"
 
+log "Setup /etc/grommunio_exporter.yaml config file"
 cat << 'EOF' > /etc/grommunio_exporter.yaml
 http_server:
   port: 9799
@@ -68,12 +68,17 @@ http_server:
   password:
 grommunio:
   # Optional overrides
-  cli_binary: /usr/sbin/grommunio-admin
+  # mysql settings, see /etc/gromox/mysql_adaptor.cfg
+  #  mysql_username: grommunio
+  #  mysql_password: database_password
+  #  mysql_database: grommunio
+  #  mysql_host: localhost
   alternative_hostname:
 EOF
 [ $? -eq 0 ] || log "Failed to setup grommunio_exporter config file" "ERROR"
 
 systemctl daemon-reload
+log "Enabling grommunio_exporter service"
 systemctl enable grommunio_exporter || log "Cannot enable grommunio_exporter service" "ERROR"
 if systemctl is-active grommunio_exporter; then
     systemctl stop grommunio_exporter || log_quit "Cannot stop grommunio_exporter service" "ERROR"
@@ -93,5 +98,6 @@ if [ "${SCRIPT_GOOD}" == false ]; then
     exit 1
 else
     echo "#### grommunio_exporter has been setup successfully"
+    echo "Test with curl localhost:9799/metrics"
     exit 0
 fi

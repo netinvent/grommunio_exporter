@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #  -*- coding: utf-8 -*-
-#e
+# e
 # This file is part of grommunio_exporter
 
 __appname__ = "grommunio_exporter"
@@ -96,9 +96,7 @@ metadata = get_metadata(package_file)
 requirements = parse_requirements(os.path.join(package_path, "requirements.txt"))
 long_description = _read_file("README.md")
 
-console_scripts = [
-    "grommunio_exporter = grommunio_exporter.server:main"
-]
+console_scripts = ["grommunio_exporter = grommunio_exporter.server:main"]
 setuptools.setup(
     name=PACKAGE_NAME,
     # We may use find_packages in order to not specify each package manually
@@ -136,14 +134,7 @@ setuptools.setup(
     author="NetInvent - Orsiris de Jong",
     author_email="contact@netinvent.fr",
     url="https://github.com/netinvent/grommunio_exporter",
-    keywords=[
-        "mail",
-        "grommunio",
-        "prometheus",
-        "linux",
-        "cli",
-        "grafana"
-    ],
+    keywords=["mail", "grommunio", "prometheus", "linux", "cli", "grafana"],
     long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires=">=3.6",

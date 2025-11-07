@@ -46,7 +46,7 @@ if not "_DEBUG" in globals():
 
 def catch_exceptions(fn: Callable):
     """
-    Catch any exception and log it so we don't loose exceptions in thread
+    Catch any exception and log it so we don't lose exceptions in thread
     """
 
     @wraps(fn)
@@ -57,7 +57,7 @@ def catch_exceptions(fn: Callable):
         except Exception as exc:
             # pylint: disable=E1101 (no-member)
             operation = fn.__name__
-            logger.error(f"Function {operation} failed with: {exc}", level="error")
+            logger.error(f"Function {operation} failed with: {exc}")
             logger.error("Trace:", exc_info=True)
             return None
 

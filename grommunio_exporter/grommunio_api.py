@@ -9,15 +9,14 @@ __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
 __copyright__ = "Copyright (C) 2024-2025 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2025091001"
+__build__ = "2025110701"
 
 from typing import List
-from ofunctions.misc import fn_name
 import logging
 from pathlib import Path
-import json
 import re
 from prometheus_client import Summary, Gauge, Enum
+import mysql.connector
 from command_runner import command_runner
 from ofunctions.misc import BytesConverter
 from grommunio_exporter.filetime import convert_from_file_time
@@ -36,10 +35,14 @@ class GrommunioExporter:
     Python class to discuss with grommunio CLI
     """
 
-    def __init__(self, cli_binary: Path, gromox_binary: Path, hostname: str):
-        self.cli_binary = cli_binary
+    def __init__(self, mysql_config: dict, gromox_binary: Path, hostname: str):
+        self.mysql_config = mysql_config
         self.gromox_binary = gromox_binary
         self.hostname = hostname
+
+        self.mysql_cnx = mysql.connector.connect(**mysql_config)
+
+        self.mysql_cursor = self.mysql_cnx.cursor(dictionary=True)
 
         # API status variable
         self.api_status = True
@@ -105,6 +108,12 @@ class GrommunioExporter:
             ["hostname", "domain", "username"],
         )
 
+        self.gauge_grommunio_mailbox_out_of_office_state = Gauge(
+            "grommunio_mailbox_out_of_office_state",
+            "Mailbox out of office state",
+            ["hostname", "domain", "username"],
+        )
+
         # Create a metric to track time spent and requests made.
         REQUEST_TIME = Summary(
             "request_processing_seconds", "Time spent processing request"
@@ -113,13 +122,8 @@ class GrommunioExporter:
     def get_grommunio_versions(self):
         versions = {
             "grommunio_exporter": __version__,
-            "grommunio_admin": "unknown",
             "gromox": "unknown",
         }
-        cmd = f"{self.cli_binary} version"
-        exit_code, result = command_runner(cmd, timeout=10)
-        if exit_code == 0:
-            versions["grommunio_admin"] = result.strip()
 
         cmd = f"{self.gromox_binary} --version"
         exit_code, result = command_runner(cmd, timeout=10)
@@ -134,10 +138,6 @@ class GrommunioExporter:
         self.gauge_grommunio_exporter_version.labels(
             self.hostname, version["grommunio_exporter"]
         ).set(0)
-
-        self.gauge_grommunio_admin_version.labels(
-            self.hostname, version["grommunio_admin"]
-        ).set(0 if version["grommunio_admin"] != "unknown" else 1)
         self.gauge_grommunio_gromox_version.labels(
             self.hostname, version["gromox"]
         ).set(0 if version["gromox"] != "unknown" else 1)
@@ -155,26 +155,20 @@ class GrommunioExporter:
 
         Returns something like
         [{"ID":0,"username":"admin","status":0},{"ID":1,"username":"user@domain","status":0}]
+
+        The following query returns something like:
+        [{'id': 0, 'username': 'admin', 'address_status': 0}, {'id': 1, 'username': 'user@domain.tld', 'address_status': 0}
         """
 
-        mailboxes = []
-        if filter_mailing_lists:
-            filter = " --filter mlist="
+        mailboxes = {}
 
-        cmd = f"{self.cli_binary} user query{filter} --format json-structured"
-        exit_code, result = command_runner(cmd, timeout=60)
-        if exit_code == 0:
-            try:
-                mailboxes = json.loads(result)
-            except json.JSONDecodeError as exc:
-                logger.error(f"Cannot decode JSON: {exc}")
-                logger.debug("Trace:", exc_info=True)
-                self.api_status = False
-        else:
-            logger.error(
-                f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
-            )
-            self.api_status = False
+        query = "SELECT id, username, address_status FROM users"
+        if filter_mailing_lists:
+            query += " WHERE username NOT IN (SELECT listname FROM mlists);"
+        query += ";"
+
+        self.mysql_cursor.execute(query)
+        mailboxes = self.mysql_cursor.fetchall()
         return mailboxes
 
     def update_mailbox_gauges(self, mailboxes: dict):
@@ -185,8 +179,8 @@ class GrommunioExporter:
                 try:
                     username = mailbox["username"]
                     domain = self._get_domain_from_username(username)
-                    # status = 4 is shared mailbox
-                    if mailbox["status"] == 4:
+                    # address_status = 4 is shared mailbox
+                    if mailbox["address_status"] == 4:
                         try:
                             per_domain_shared_mailbox_count[domain].append(username)
                         except (KeyError, AttributeError):
@@ -240,79 +234,113 @@ class GrommunioExporter:
 
     def _get_mailbox_properties(self, usernames: List[str]):
         """
-        Get various properties of mailboxes
+        In Grommunio database:
 
-        # Old way to transform grommunio-admin shell output into json list
-        grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "[["} {if ($1=="") {next}; if ($1=="exmdb") {sep=""; if (first==1) { printf "],["} else {first=1}}; if ($1~/^0x/) {next} ; printf"\n%s{\"%s\": \"%s\"}", sep,$1,$2; sep=","} END { printf "]]" }'
+        Hex         Proptag         Name                      Type
+        0x666a0003  1718222851     PROHIBITRECEIVEQUOTA       LONG
+        0x0e080014  235405332      MESSAGESIZEEXTENDED        LONGLONG
+        0x0e230003  237174787      INTERNETARTICLENUMBER      LONG
+        0x3001001f  805371935      DISPLAYNAME                WSTRING
+        0x39050003  956628995      DISPLAYTYPEEX              LONG
+        0x3ff50003  1073020931     STORAGEQUOTALIMIT          LONG
+        0x661d000b  1713176587     OUTOFOFFICESTATE           BYTE
+        0x666a0003  1718222851     PROHIBITRECEIVEQUOTA       LONG
+        0x666e0003  1718484995     PROHIBITSENDQUOTA          LONG
+        0x66b30014  1723006996     NORMALMESSAGESIZEEXTENDED  LONGLONG
+        0x66b40014  1723072532     ASSOCMESSAGESIZEEXTENDED   LONGLONG
+        0x30070040  805765184      CREATIONTIME               FILETIME
 
-        # New way to transform grommunio-admin shell multiple json blocks output into json list
-        # We also need to extract the username from our query and insert it into the json... !!! horay
-        grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { gsub("\\\\\"settings.*", "}\"}", $0); print substr($0, 2) } END {printf "]]\n"}'
+
+        # Raw request
+        SELECT
+            users.id,
+            users.username,
+            user_properties.proptag,
+            user_properties.propval_str
+        FROM user_properties INNER JOIN users ON user_properties.user_id=users.id
+        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995, 805765184);
+
+        # Let's transform the proptag values into a column
+        SELECT
+            users.id,
+            users.username,
+            MAX(CASE WHEN user_properties.proptag = 235405332 THEN user_properties.propval_str END) AS messagesizeextended,
+            MAX(CASE WHEN user_properties.proptag = 1718222851 THEN user_properties.propval_str END) AS prohibitreceivequota,
+            MAX(CASE WHEN user_properties.proptag = 1073020931 THEN user_properties.propval_str END) AS storagequotalimit,
+            MAX(CASE WHEN user_properties.proptag = 1718484995 THEN user_properties.propval_str END) AS prohibitsendquota,
+            MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime,
+            MAX(CASE WHEN user_properties.proptag = 1713176587 THEN user_properties.propval_str END) AS outofofficestate
+        FROM user_properties INNER JOIN users ON user_properties.user_id=users.id
+        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995,805765184,1713176587)
+        GROUP BY users.id;
+
+        Produces something like:
+        [
+        {'id': 1, 'username': 'user@domain.tld', 'messagesizeextended': '5025442101', 'prohibitreceivequota': None, 'storagequotalimit': '25165824', 'prohibitsendquota': None, 'creationtime': '133399826720000000'},
+        {'id': 2, 'username': 'other@user.tld', 'messagesizeextended': '2778305272', 'prohibitreceivequota': '16777216', 'storagequotalimit': '18874368', 'prohibitsendquota': '15728640', 'creationtime': '133399827670000000'}
+        ]
         """
 
         mailbox_properties = {}
-        awk_cmd = r"""awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { gsub("\\\\\"settings.*", "}\"}", $0); print substr($0, 2) } END {printf "]]\n"}'"""
-        grommunio_shell_cmds = ""
-        for username in usernames:
-            grommunio_shell_cmds += f"exmdb {username} store get --format json-kv\n"
-        cmd = f"{self.cli_binary} shell -x << EOF 2>/dev/null | {awk_cmd} \n{grommunio_shell_cmds}\nEOF"
 
-        exit_code, result = command_runner(cmd, shell=True)
-        if exit_code == 0:
-            try:
-                mailbox_properties = json.loads(result)
-            except json.JSONDecodeError as exc:
-                logger.error(f"Cannot decode JSON: {exc}")
-                logger.debug("Trace:", exc_info=True)
-                self.api_status = False
-        else:
-            logger.error(
-                f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
-            )
-            self.api_status = False
-            # Since we used awk, we should definitely reset the output
-            mailbox_properties = {}
-
+        query = "SELECT \
+            users.id, \
+            users.username, \
+            MAX(CASE WHEN user_properties.proptag = 235405332 THEN user_properties.propval_str END) AS messagesizeextended, \
+            MAX(CASE WHEN user_properties.proptag = 1718222851 THEN user_properties.propval_str END) AS prohibitreceivequota, \
+            MAX(CASE WHEN user_properties.proptag = 1073020931 THEN user_properties.propval_str END) AS storagequotalimit, \
+            MAX(CASE WHEN user_properties.proptag = 1718484995 THEN user_properties.propval_str END) AS prohibitsendquota, \
+            MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime, \
+            MAX(CASE WHEN user_properties.proptag = 1713176587 THEN user_properties.propval_str END) AS outofofficestate \
+        FROM user_properties INNER JOIN users ON user_properties.user_id=users.id \
+        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995,805765184,1713176587) \
+        GROUP BY users.id;"
+        self.mysql_cursor.execute(query)
+        mailbox_properties = self.mysql_cursor.fetchall()
         return mailbox_properties
 
     def update_mailbox_properties_gauges(self, mailbox_properties: dict):
         try:
-            for mailbox_prop in mailbox_properties:
+            for mbox_prop in mailbox_properties:
                 username = "none"
                 labels = (self.hostname, "no_domain", "none")
-                for entry in mailbox_prop:
-                    for key, value in entry.items():
-                        # We must have exmdb key before others
-                        if key == "username":
-                            username = value
-                            domain = self._get_domain_from_username(username)
-                            labels = (self.hostname, domain, username)
-                        if key == "messagesizeextended":
-                            self.gauge_grommunio_mailbox_messagesize.labels(
-                                *labels
-                            ).set(value)
-                        elif key == "storagequotalimit":
-                            # Value given in KB iec, we need to convert it to bytes
-                            value = BytesConverter(f"{value} KiB")
-                            self.gauge_grommunio_mailbox_storage_quota_limit.labels(
-                                *labels
-                            ).set(value)
-                        elif key == "prohibitreceivequota":
-                            value = BytesConverter(f"{value} KiB")
-                            self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(
-                                *labels
-                            ).set(value)
-                        elif key == "prohibitsendquota":
-                            value = BytesConverter(f"{value} KiB")
-                            self.gauge_grommunio_mailbox_prohibit_send_quota.labels(
-                                *labels
-                            ).set(value)
-                        elif key == "creationtime":
-                            # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
-                            value = convert_from_file_time(value).timestamp()
-                            self.gauge_grommunio_mailbox_creation_time.labels(
-                                *labels
-                            ).set(value)
+                for key, value in mbox_prop.items():
+                    if value is None:
+                        value = 0
+                    if key == "username":
+                        username = value
+                        domain = self._get_domain_from_username(username)
+                        labels = (self.hostname, domain, username)
+                    if key == "messagesizeextended":
+                        self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(
+                            value
+                        )
+                    elif key == "storagequotalimit":
+                        # Value given in KB iec, we need to convert it to bytes
+                        value = BytesConverter(f"{value} KiB")
+                        self.gauge_grommunio_mailbox_storage_quota_limit.labels(
+                            *labels
+                        ).set(value)
+                    elif key == "prohibitreceivequota":
+                        value = BytesConverter(f"{value} KiB")
+                        self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(
+                            *labels
+                        ).set(value)
+                    elif key == "prohibitsendquota":
+                        value = BytesConverter(f"{value} KiB")
+                        self.gauge_grommunio_mailbox_prohibit_send_quota.labels(
+                            *labels
+                        ).set(value)
+                    elif key == "creationtime":
+                        # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
+                        value = convert_from_file_time(value).timestamp()
+                        self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(
+                            value
+                        )
+                    elif key == "outofofficestate":
+                        self.gauge_grommunio_mailbox_out_of_office_state.labels(
+                            *labels
+                        ).set(value)
         except (TypeError, AttributeError, KeyError, IndexError, ValueError) as exc:
             logger.error(
                 f"Cannot iter over mailbox properties while updating gauges: {exc}"
@@ -341,11 +369,15 @@ class GrommunioExporter:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     print("Running test API calls")
+    from grommunio_exporter.mysql_config import load_mysql_config
+
+    mysql_config = load_mysql_config()
     api = GrommunioExporter(
-        cli_binary="/usr/sbin/grommunio-admin",
+        mysql_config=mysql_config,
         gromox_binary="/usr/libexec/gromox/zcore",
         hostname="test-script",
     )
+
     print("Getting Grommunio versions")
     versions = api.get_grommunio_versions()
     print(versions)
