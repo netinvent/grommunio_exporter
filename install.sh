@@ -56,6 +56,7 @@ WantedBy=multi-user.target
 EOF
 [ $? -eq 0 ] || log "Failed to setup systemd unit file" "ERROR"
 
+log "Setup /etc/grommunio_exporter.yaml config file"
 cat << 'EOF' > /etc/grommunio_exporter.yaml
 http_server:
   port: 9799
@@ -77,6 +78,7 @@ EOF
 [ $? -eq 0 ] || log "Failed to setup grommunio_exporter config file" "ERROR"
 
 systemctl daemon-reload
+log "Enabling grommunio_exporter service"
 systemctl enable grommunio_exporter || log "Cannot enable grommunio_exporter service" "ERROR"
 if systemctl is-active grommunio_exporter; then
     systemctl stop grommunio_exporter || log_quit "Cannot stop grommunio_exporter service" "ERROR"
@@ -96,5 +98,6 @@ if [ "${SCRIPT_GOOD}" == false ]; then
     exit 1
 else
     echo "#### grommunio_exporter has been setup successfully"
+    echo "Test with curl localhost:9799/metrics"
     exit 0
 fi
