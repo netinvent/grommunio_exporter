@@ -100,9 +100,7 @@ app.mount("/metrics", metrics_app)
 security = HTTPBasic()
 
 api = GrommunioExporter(
-    mysql_config=mysql_config,
-    gromox_binary=gromox_binary,
-    hostname=hostname
+    mysql_config=mysql_config, gromox_binary=gromox_binary, hostname=hostname
 )
 
 

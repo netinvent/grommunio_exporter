@@ -35,18 +35,12 @@ class GrommunioExporter:
     Python class to discuss with grommunio CLI
     """
 
-    def __init__(
-            self,
-            mysql_config: dict,
-            gromox_binary: Path,
-            hostname: str):
+    def __init__(self, mysql_config: dict, gromox_binary: Path, hostname: str):
         self.mysql_config = mysql_config
         self.gromox_binary = gromox_binary
         self.hostname = hostname
 
-        self.mysql_cnx = mysql.connector.connect(
-            **mysql_config
-        )
+        self.mysql_cnx = mysql.connector.connect(**mysql_config)
 
         self.mysql_cursor = self.mysql_cnx.cursor(dictionary=True)
 
@@ -256,14 +250,14 @@ class GrommunioExporter:
         0x66b40014  1723072532     ASSOCMESSAGESIZEEXTENDED   LONGLONG
         0x30070040  805765184      CREATIONTIME               FILETIME
 
-        
+
         # Raw request
         SELECT
             users.id,
             users.username,
             user_properties.proptag,
-            user_properties.propval_str 
-        FROM user_properties INNER JOIN users ON user_properties.user_id=users.id 
+            user_properties.propval_str
+        FROM user_properties INNER JOIN users ON user_properties.user_id=users.id
         WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995, 805765184);
 
         # Let's transform the proptag values into a column
@@ -318,9 +312,9 @@ class GrommunioExporter:
                         domain = self._get_domain_from_username(username)
                         labels = (self.hostname, domain, username)
                     if key == "messagesizeextended":
-                        self.gauge_grommunio_mailbox_messagesize.labels(
-                            *labels
-                        ).set(value)
+                        self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(
+                            value
+                        )
                     elif key == "storagequotalimit":
                         # Value given in KB iec, we need to convert it to bytes
                         value = BytesConverter(f"{value} KiB")
@@ -340,9 +334,9 @@ class GrommunioExporter:
                     elif key == "creationtime":
                         # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
                         value = convert_from_file_time(value).timestamp()
-                        self.gauge_grommunio_mailbox_creation_time.labels(
-                            *labels
-                        ).set(value)
+                        self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(
+                            value
+                        )
                     elif key == "outofofficestate":
                         self.gauge_grommunio_mailbox_out_of_office_state.labels(
                             *labels
@@ -376,6 +370,7 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     print("Running test API calls")
     from grommunio_exporter.mysql_config import load_mysql_config
+
     mysql_config = load_mysql_config()
     api = GrommunioExporter(
         mysql_config=mysql_config,

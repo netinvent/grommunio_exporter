@@ -11,6 +11,7 @@ __description__ = "Grommunio Prometheus data exporter"
 
 import configparser
 
+
 def load_mysql_config():
     config = configparser.ConfigParser()
     try:
@@ -26,4 +27,3 @@ def load_mysql_config():
         "host": "localhost",
         "port": 3306,
     }
-
