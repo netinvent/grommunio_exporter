@@ -7,6 +7,11 @@ http_server:
   username:
   password:
 grommunio:
+  # Mysql settings, see /etc/gromox/mysql_adapter.cfg
+  mysql_username: grommunio
+  mysql_password: database_password
+  mysql_database: grommunio
+  mysql_host: localhost
   # Optional overrides
   cli_binary: /usr/sbin/grommunio-admin
   gromox_binary: /usr/libexec/gromox/zcore

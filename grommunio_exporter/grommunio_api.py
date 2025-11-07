@@ -9,7 +9,7 @@ __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
 __copyright__ = "Copyright (C) 2024-2025 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2025091001"
+__build__ = "2025110701"
 
 from typing import List
 from ofunctions.misc import fn_name
@@ -18,6 +18,7 @@ from pathlib import Path
 import json
 import re
 from prometheus_client import Summary, Gauge, Enum
+import mysql.connector
 from command_runner import command_runner
 from ofunctions.misc import BytesConverter
 from grommunio_exporter.filetime import convert_from_file_time
@@ -36,10 +37,20 @@ class GrommunioExporter:
     Python class to discuss with grommunio CLI
     """
 
-    def __init__(self, cli_binary: Path, gromox_binary: Path, hostname: str):
-        self.cli_binary = cli_binary
+    def __init__(
+            self,
+            mysql_config: dict,
+            gromox_binary: Path,
+            hostname: str):
+        self.mysql_config = mysql_config
         self.gromox_binary = gromox_binary
         self.hostname = hostname
+
+        self.mysql_cnx = mysql.connector.connect(
+            **mysql_config
+        )
+
+        self.mysql_cursor = self.mysq_cnx.cursor(dictionary=True)
 
         # API status variable
         self.api_status = True
@@ -113,13 +124,8 @@ class GrommunioExporter:
     def get_grommunio_versions(self):
         versions = {
             "grommunio_exporter": __version__,
-            "grommunio_admin": "unknown",
             "gromox": "unknown",
         }
-        cmd = f"{self.cli_binary} version"
-        exit_code, result = command_runner(cmd, timeout=10)
-        if exit_code == 0:
-            versions["grommunio_admin"] = result.strip()
 
         cmd = f"{self.gromox_binary} --version"
         exit_code, result = command_runner(cmd, timeout=10)
@@ -157,7 +163,18 @@ class GrommunioExporter:
         [{"ID":0,"username":"admin","status":0},{"ID":1,"username":"user@domain","status":0}]
         """
 
-        mailboxes = []
+        mailboxes = {}
+
+        query = "SELECT id, username, address_status FROM users"
+        if filter_mailing_lists:
+            query += " WHERE username NOT IN (SELECT listname FROM mlists);"
+        query += ";"
+
+        self.mysql_cursor.execute(query)
+        mailboxes = self.mysql_cursor.fetchall()
+        print(mailboxes)
+        return mailboxes
+
         if filter_mailing_lists:
             filter = " --filter mlist="
 

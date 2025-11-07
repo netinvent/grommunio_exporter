@@ -9,7 +9,7 @@ __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
 __copyright__ = "Copyright (C) 2024-2025 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2025091501"
+__build__ = "2025110701"
 
 
 import sys
@@ -59,9 +59,6 @@ else:
 http_username = config_dict.g("http_server.username")
 http_password = config_dict.g("http_server.password")
 http_no_auth = config_dict.g("http_server.no_auth")
-cli_binary = config_dict.g("grommunio.cli_binary")
-if not cli_binary:
-    cli_binary = "/usr/sbin/grommunio-admin"
 gromox_binary = config_dict.g("grommunio.gromox_binary")
 if not gromox_binary:
     gromox_binary = "/usr/libexec/gromox/zcore"
@@ -74,6 +71,28 @@ if not hostname:
     except socket.gaierror:
         hostname = "not_resolvable_hostname"
         logger.error("Cannot resolve hostname, using 'not_resolvable_hostname'")
+mysql_username = config_dict.g("grommunio.mysql_username")
+mysql_password = config_dict.g("grommunio.mysql_password")
+mysql_database = config_dict.g("grommunio.mysql_database")
+mysql_host = config_dict.g("grommunio.mysql_host")
+if not mysql_host:
+    mysql_host = "localhost"
+mysql_port = config_dict.g("grommunio.mysql_port")
+if not mysql_port:
+    mysql_port = 3306
+if not mysql_username or not mysql_password or not mysql_database:
+    logger.critical(
+        "Mysql username, password or database not set in configuration, cannot continue"
+    )
+    sys.exit(1)
+else:
+    mysql_config = {
+        "user": mysql_username,
+        "password": mysql_password,
+        "host": mysql_host,
+        "port": mysql_port,
+        "database": mysql_database
+    }
 
 
 app = FastAPIOffline()
@@ -82,7 +101,9 @@ app.mount("/metrics", metrics_app)
 security = HTTPBasic()
 
 api = GrommunioExporter(
-    cli_binary=cli_binary, gromox_binary=gromox_binary, hostname=hostname
+    mysql_config=mysql_config,
+    gromox_binary=gromox_binary,
+    hostname=hostname
 )
 
 
