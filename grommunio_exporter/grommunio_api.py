@@ -12,10 +12,8 @@ __license__ = "GPL-3.0-only"
 __build__ = "2025110701"
 
 from typing import List
-from ofunctions.misc import fn_name
 import logging
 from pathlib import Path
-import json
 import re
 from prometheus_client import Summary, Gauge, Enum
 import mysql.connector
@@ -253,54 +251,89 @@ class GrommunioExporter:
         0x30070040  805765184      CREATIONTIME               FILETIME
 
         
-        SELECT users.id, users.username, user_properties.proptag, user_properties.propval_str FROM user_properties INNER JOIN users ON user_properties.user_id=users.id WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995, 805765184);
+        # Raw request
+        SELECT
+            users.id,
+            users.username,
+            user_properties.proptag,
+            user_properties.propval_str 
+        FROM user_properties INNER JOIN users ON user_properties.user_id=users.id 
+        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995, 805765184);
+
+        # Let's transform the proptag values into a column
+        SELECT
+            users.id,
+            users.username,
+            MAX(CASE WHEN user_properties.proptag = 235405332 THEN user_properties.propval_str END) AS messagesizeextended,
+            MAX(CASE WHEN user_properties.proptag = 1718222851 THEN user_properties.propval_str END) AS prohibitreceivequota,
+            MAX(CASE WHEN user_properties.proptag = 1073020931 THEN user_properties.propval_str END) AS storagequotalimit,
+            MAX(CASE WHEN user_properties.proptag = 1718484995 THEN user_properties.propval_str END) AS prohibitsendquota,
+            MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime
+        FROM user_properties INNER JOIN users ON user_properties.user_id=users.id
+        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995, 805765184)
+        GROUP BY users.id;
+
+        Produces something like:
+        [
+        {'id': 1, 'username': 'user@domain.tld', 'messagesizeextended': '5025442101', 'prohibitreceivequota': None, 'storagequotalimit': '25165824', 'prohibitsendquota': None, 'creationtime': '133399826720000000'},
+        {'id': 2, 'username': 'other@user.tld', 'messagesizeextended': '2778305272', 'prohibitreceivequota': '16777216', 'storagequotalimit': '18874368', 'prohibitsendquota': '15728640', 'creationtime': '133399827670000000'}
+        ]
         """
 
         mailbox_properties = {}
 
-        query = "SELECT users.id, users.username, user_properties.proptag, user_properties.propval_str FROM user_properties INNER JOIN users ON user_properties.user_id=users.id WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995, 805765184);"
+        query = "SELECT \
+            users.id, \
+            users.username, \
+            MAX(CASE WHEN user_properties.proptag = 235405332 THEN user_properties.propval_str END) AS messagesizeextended, \
+            MAX(CASE WHEN user_properties.proptag = 1718222851 THEN user_properties.propval_str END) AS prohibitreceivequota, \
+            MAX(CASE WHEN user_properties.proptag = 1073020931 THEN user_properties.propval_str END) AS storagequotalimit, \
+            MAX(CASE WHEN user_properties.proptag = 1718484995 THEN user_properties.propval_str END) AS prohibitsendquota, \
+            MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime \
+        FROM user_properties INNER JOIN users ON user_properties.user_id=users.id \
+        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995, 805765184) \
+        GROUP BY users.id;"
         self.mysql_cursor.execute(query)
         mailbox_properties = self.mysql_cursor.fetchall()
         return mailbox_properties
 
     def update_mailbox_properties_gauges(self, mailbox_properties: dict):
         try:
-            for mailbox_prop in mailbox_properties:
+            for mbox_prop in mailbox_properties:
                 username = "none"
                 labels = (self.hostname, "no_domain", "none")
-                for entry in mailbox_prop:
-                    for key, value in entry.items():
-                        # We must have exmdb key before others
-                        if key == "username":
-                            username = value
-                            domain = self._get_domain_from_username(username)
-                            labels = (self.hostname, domain, username)
-                        if key == "messagesizeextended":
-                            self.gauge_grommunio_mailbox_messagesize.labels(
-                                *labels
-                            ).set(value)
-                        elif key == "storagequotalimit":
-                            # Value given in KB iec, we need to convert it to bytes
-                            value = BytesConverter(f"{value} KiB")
-                            self.gauge_grommunio_mailbox_storage_quota_limit.labels(
-                                *labels
-                            ).set(value)
-                        elif key == "prohibitreceivequota":
-                            value = BytesConverter(f"{value} KiB")
-                            self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(
-                                *labels
-                            ).set(value)
-                        elif key == "prohibitsendquota":
-                            value = BytesConverter(f"{value} KiB")
-                            self.gauge_grommunio_mailbox_prohibit_send_quota.labels(
-                                *labels
-                            ).set(value)
-                        elif key == "creationtime":
-                            # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
-                            value = convert_from_file_time(value).timestamp()
-                            self.gauge_grommunio_mailbox_creation_time.labels(
-                                *labels
-                            ).set(value)
+                for key, value in mbox_prop.items():
+                    # We must have exmdb key before others
+                    if key == "username":
+                        username = value
+                        domain = self._get_domain_from_username(username)
+                        labels = (self.hostname, domain, username)
+                    if key == "messagesizeextended":
+                        self.gauge_grommunio_mailbox_messagesize.labels(
+                            *labels
+                        ).set(value)
+                    elif key == "storagequotalimit":
+                        # Value given in KB iec, we need to convert it to bytes
+                        value = BytesConverter(f"{value} KiB")
+                        self.gauge_grommunio_mailbox_storage_quota_limit.labels(
+                            *labels
+                        ).set(value)
+                    elif key == "prohibitreceivequota":
+                        value = BytesConverter(f"{value} KiB")
+                        self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(
+                            *labels
+                        ).set(value)
+                    elif key == "prohibitsendquota":
+                        value = BytesConverter(f"{value} KiB")
+                        self.gauge_grommunio_mailbox_prohibit_send_quota.labels(
+                            *labels
+                        ).set(value)
+                    elif key == "creationtime":
+                        # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
+                        value = convert_from_file_time(value).timestamp()
+                        self.gauge_grommunio_mailbox_creation_time.labels(
+                            *labels
+                        ).set(value)
         except (TypeError, AttributeError, KeyError, IndexError, ValueError) as exc:
             logger.error(
                 f"Cannot iter over mailbox properties while updating gauges: {exc}"
