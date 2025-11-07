@@ -296,7 +296,7 @@ class GrommunioExporter:
             MAX(CASE WHEN user_properties.proptag = 1718222851 THEN user_properties.propval_str END) AS prohibitreceivequota, \
             MAX(CASE WHEN user_properties.proptag = 1073020931 THEN user_properties.propval_str END) AS storagequotalimit, \
             MAX(CASE WHEN user_properties.proptag = 1718484995 THEN user_properties.propval_str END) AS prohibitsendquota, \
-            MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime \
+            MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime, \
             MAX(CASE WHEN user_properties.proptag = 1713176587 THEN user_properties.propval_str END) AS outofofficestate \
         FROM user_properties INNER JOIN users ON user_properties.user_id=users.id \
         WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995,805765184,1713176587) \
