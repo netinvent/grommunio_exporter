@@ -114,6 +114,12 @@ class GrommunioExporter:
             ["hostname", "domain", "username"],
         )
 
+        self.gauge_grommunio_mailbox_out_of_office_state = Gauge(
+            "grommunio_mailbox_out_of_office_state",
+            "Mailbox out of office state",
+            ["hostname", "domain", "username"],
+        )
+
         # Create a metric to track time spent and requests made.
         REQUEST_TIME = Summary(
             "request_processing_seconds", "Time spent processing request"
