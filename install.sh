@@ -28,11 +28,10 @@ function log_quit {
 
 log "#### Setup grommunio_exporter"
 
-log "Installing python3-pip package"
-
-zypper install -y python3-pip || log_quit "Cannot install python3-pip"
-python3 -m pip install --upgrade pip setuptools wheel || log "Failed to update python pip/setuptools/wheel" "ERROR"
-python3 -m pip install grommunio_exporter || log_quit "Failed to install grommunio_exporter"
+log "Setting up venv environment"
+python3.11 -m venv /usr/local/grommunio_exporter_venv || log_quit "Cannot create python venv" "ERROR"
+/usr/local/grommunio_exporter_venv/bin/python -m pip install --upgrade pip setuptools wheel || log_quit "Cannot update pip/setuptools/wheel in venv" "ERROR"
+/usr/local/grommunio_exporter_venv/bin/python -m pip install grommunio_exporter || log_quit "Cannot install grommunio_exporter in venv" "ERROR"
 
 log "Setup systemd unit file"
 
@@ -48,7 +47,7 @@ Type=simple
 # You may prefer to use a different user or group on your system.
 #User=grommunio
 #Group=grommunio
-ExecStart=/usr/bin/grommunio_exporter -c /etc/grommunio_exporter.yaml
+ExecStart=/usr/local/grommunio_exporter_venv/bin/python /usr/bin/grommunio_exporter -c /etc/grommunio_exporter.yaml
 Restart=always
 RestartSec=60
 
@@ -68,7 +67,11 @@ http_server:
   password:
 grommunio:
   # Optional overrides
-  cli_binary: /usr/sbin/grommunio-admin
+  # mysql settings, see /etc/gromox/mysql_adapter.cfg
+  #  mysql_username: grommunio
+  #  mysql_password: database_password
+  #  mysql_database: grommunio
+  #  mysql_host: localhost
   alternative_hostname:
 EOF
 [ $? -eq 0 ] || log "Failed to setup grommunio_exporter config file" "ERROR"
