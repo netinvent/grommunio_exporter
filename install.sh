@@ -67,7 +67,7 @@ http_server:
   password:
 grommunio:
   # Optional overrides
-  # mysql settings, see /etc/gromox/mysql_adapter.cfg
+  # mysql settings, see /etc/gromox/mysql_adaptor.cfg
   #  mysql_username: grommunio
   #  mysql_password: database_password
   #  mysql_database: grommunio

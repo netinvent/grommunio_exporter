@@ -7,7 +7,7 @@ http_server:
   username:
   password:
 grommunio:
-  # Mysql settings, see /etc/gromox/mysql_adapter.cfg
+  # Mysql settings, see /etc/gromox/mysql_adaptor.cfg
   mysql_username: grommunio
   mysql_password: database_password
   mysql_database: grommunio
