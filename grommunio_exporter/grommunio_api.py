@@ -140,10 +140,6 @@ class GrommunioExporter:
         self.gauge_grommunio_exporter_version.labels(
             self.hostname, version["grommunio_exporter"]
         ).set(0)
-
-        self.gauge_grommunio_admin_version.labels(
-            self.hostname, version["grommunio_admin"]
-        ).set(0 if version["grommunio_admin"] != "unknown" else 1)
         self.gauge_grommunio_gromox_version.labels(
             self.hostname, version["gromox"]
         ).set(0 if version["gromox"] != "unknown" else 1)
@@ -161,6 +157,9 @@ class GrommunioExporter:
 
         Returns something like
         [{"ID":0,"username":"admin","status":0},{"ID":1,"username":"user@domain","status":0}]
+
+        The following query returns something like:
+        [{'id': 0, 'username': 'admin', 'address_status': 0}, {'id': 1, 'username': 'user@domain.tld', 'address_status': 0}
         """
 
         mailboxes = {}
@@ -172,26 +171,6 @@ class GrommunioExporter:
 
         self.mysql_cursor.execute(query)
         mailboxes = self.mysql_cursor.fetchall()
-        print(mailboxes)
-        return mailboxes
-
-        if filter_mailing_lists:
-            filter = " --filter mlist="
-
-        cmd = f"{self.cli_binary} user query{filter} --format json-structured"
-        exit_code, result = command_runner(cmd, timeout=60)
-        if exit_code == 0:
-            try:
-                mailboxes = json.loads(result)
-            except json.JSONDecodeError as exc:
-                logger.error(f"Cannot decode JSON: {exc}")
-                logger.debug("Trace:", exc_info=True)
-                self.api_status = False
-        else:
-            logger.error(
-                f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
-            )
-            self.api_status = False
         return mailboxes
 
     def update_mailbox_gauges(self, mailboxes: dict):
@@ -202,8 +181,8 @@ class GrommunioExporter:
                 try:
                     username = mailbox["username"]
                     domain = self._get_domain_from_username(username)
-                    # status = 4 is shared mailbox
-                    if mailbox["status"] == 4:
+                    # address_status = 4 is shared mailbox
+                    if mailbox["address_status"] == 4:
                         try:
                             per_domain_shared_mailbox_count[domain].append(username)
                         except (KeyError, AttributeError):
@@ -358,11 +337,24 @@ class GrommunioExporter:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     print("Running test API calls")
+    import configparser
+    config = configparser.ConfigParser()
+    with open("/etc/gromox/mysql_adaptor.cfg") as stream:
+        config.read_string("[top]\n" + stream.read())
+
+    mysql_config = {
+        "user": config["top"]["mysql_username"],
+        "password": config["top"]["mysql_password"],
+        "database": config["top"]["mysql_dbname"],
+        "host": "localhost",
+        "port": 3306,
+    }
     api = GrommunioExporter(
-        cli_binary="/usr/sbin/grommunio-admin",
+        mysql_config=mysql_config,
         gromox_binary="/usr/libexec/gromox/zcore",
         hostname="test-script",
     )
+
     print("Getting Grommunio versions")
     versions = api.get_grommunio_versions()
     print(versions)
