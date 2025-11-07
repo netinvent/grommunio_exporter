@@ -50,7 +50,7 @@ class GrommunioExporter:
             **mysql_config
         )
 
-        self.mysql_cursor = self.mysq_cnx.cursor(dictionary=True)
+        self.mysql_cursor = self.mysql_cnx.cursor(dictionary=True)
 
         # API status variable
         self.api_status = True
