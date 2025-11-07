@@ -268,9 +268,10 @@ class GrommunioExporter:
             MAX(CASE WHEN user_properties.proptag = 1718222851 THEN user_properties.propval_str END) AS prohibitreceivequota,
             MAX(CASE WHEN user_properties.proptag = 1073020931 THEN user_properties.propval_str END) AS storagequotalimit,
             MAX(CASE WHEN user_properties.proptag = 1718484995 THEN user_properties.propval_str END) AS prohibitsendquota,
-            MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime
+            MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime,
+            MAX(CASE WHEN user_properties.proptag = 1713176587 THEN user_properties.propval_str END) AS outofofficestate
         FROM user_properties INNER JOIN users ON user_properties.user_id=users.id
-        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995, 805765184)
+        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995,805765184,1713176587)
         GROUP BY users.id;
 
         Produces something like:
@@ -290,8 +291,9 @@ class GrommunioExporter:
             MAX(CASE WHEN user_properties.proptag = 1073020931 THEN user_properties.propval_str END) AS storagequotalimit, \
             MAX(CASE WHEN user_properties.proptag = 1718484995 THEN user_properties.propval_str END) AS prohibitsendquota, \
             MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime \
+            MAX(CASE WHEN user_properties.proptag = 1713176587 THEN user_properties.propval_str END) AS outofofficestate \
         FROM user_properties INNER JOIN users ON user_properties.user_id=users.id \
-        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995, 805765184) \
+        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995,805765184,1713176587) \
         GROUP BY users.id;"
         self.mysql_cursor.execute(query)
         mailbox_properties = self.mysql_cursor.fetchall()
@@ -303,7 +305,8 @@ class GrommunioExporter:
                 username = "none"
                 labels = (self.hostname, "no_domain", "none")
                 for key, value in mbox_prop.items():
-                    # We must have exmdb key before others
+                    if value is None:
+                        value = 0
                     if key == "username":
                         username = value
                         domain = self._get_domain_from_username(username)
@@ -332,6 +335,10 @@ class GrommunioExporter:
                         # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
                         value = convert_from_file_time(value).timestamp()
                         self.gauge_grommunio_mailbox_creation_time.labels(
+                            *labels
+                        ).set(value)
+                    elif key == "outofofficestate":
+                        self.gauge_grommunio_mailbox_out_of_office_state.labels(
                             *labels
                         ).set(value)
         except (TypeError, AttributeError, KeyError, IndexError, ValueError) as exc:
