@@ -29,7 +29,7 @@ function log_quit {
 log "#### Setup grommunio_exporter"
 
 log "Installing Python 3.11 if not present"
-zypper install -y python311 | log_quit "Cannot install python 3.11" "ERROR"
+zypper install -y python311 || log_quit "Cannot install python 3.11" "ERROR"
 
 log "Setting up venv environment"
 python3.11 -m venv /usr/local/grommunio_exporter_venv || log_quit "Cannot create python venv" "ERROR"
