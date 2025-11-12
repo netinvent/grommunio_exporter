@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Installer script for grommunio_exporter on Grommunio OpenSuSE 15.6 based appliances
-# Script 2025110701
+# Script 2025111201
 
 LOG_FILE=./install_grommunio_exporter.log
 SCRIPT_GOOD=true
@@ -28,6 +28,9 @@ function log_quit {
 
 log "#### Setup grommunio_exporter"
 
+log "Installing Python 3.11 if not present"
+zypper install -y python311 | log_quit "Cannot install python 3.11" "ERRO3
+
 log "Setting up venv environment"
 python3.11 -m venv /usr/local/grommunio_exporter_venv || log_quit "Cannot create python venv" "ERROR"
 /usr/local/grommunio_exporter_venv/bin/python -m pip install --upgrade pip setuptools wheel || log_quit "Cannot update pip/setuptools/wheel in venv" "ERROR"
@@ -47,7 +50,7 @@ Type=simple
 # You may prefer to use a different user or group on your system.
 #User=grommunio
 #Group=grommunio
-ExecStart=/usr/local/grommunio_exporter_venv/bin/python /usr/bin/grommunio_exporter -c /etc/grommunio_exporter.yaml
+ExecStart=/usr/local/grommunio_exporter_venv/bin/grommunio_exporter -c /etc/grommunio_exporter.yaml
 Restart=always
 RestartSec=60
 
