@@ -29,7 +29,7 @@ function log_quit {
 log "#### Setup grommunio_exporter"
 
 log "Installing Python 3.11 if not present"
-zypper install -y python311 || log_quit "Cannot install python 3.11" "ERROR"
+zypper install -y python311
 
 log "Setting up venv environment"
 python3.11 -m venv /usr/local/grommunio_exporter_venv || log_quit "Cannot create python venv" "ERROR"
@@ -43,7 +43,7 @@ cat << 'EOF' > /etc/systemd/system/grommunio_exporter.service
 Description=Grommunio Exporter
 After=syslog.target
 After=network.target
-AssertFileIsExecutable=/usr/bin/grommunio_exporter
+AssertFileIsExecutable=/usr/local/grommunio_exporter_venv/bin/grommunio_exporter
 
 [Service]
 Type=simple
