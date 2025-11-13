@@ -312,35 +312,37 @@ class GrommunioExporter:
                         domain = self._get_domain_from_username(username)
                         labels = (self.hostname, domain, username)
                     if key == "messagesizeextended":
-                        self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(
-                            value
-                        )
+                        messagesizeextended = float(value)
                     elif key == "storagequotalimit":
                         # Value given in KB iec, we need to convert it to bytes
-                        value = BytesConverter(f"{value} KiB").bytes
-                        self.gauge_grommunio_mailbox_storage_quota_limit.labels(
-                            *labels
-                        ).set(value)
+                        storagequotalimit = BytesConverter(f"{value} KiB").bytes
                     elif key == "prohibitreceivequota":
-                        value = BytesConverter(f"{value} KiB").bytes
-                        self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(
-                            *labels
-                        ).set(value)
+                        prohibitreceivequota = BytesConverter(f"{value} KiB").bytes
                     elif key == "prohibitsendquota":
-                        value = BytesConverter(f"{value} KiB").bytes
-                        self.gauge_grommunio_mailbox_prohibit_send_quota.labels(
-                            *labels
-                        ).set(value)
+                        prohibitsendquota = BytesConverter(f"{value} KiB").bytes
                     elif key == "creationtime":
                         # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
-                        value = convert_from_file_time(value).timestamp()
-                        self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(
-                            value
-                        )
+                        creationtime = convert_from_file_time(value).timestamp()
                     elif key == "outofofficestate":
-                        self.gauge_grommunio_mailbox_out_of_office_state.labels(
-                            *labels
-                        ).set(value)
+                        outofofficestate = float(value)
+                self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(
+                    messagesizeextended
+                )
+                self.gauge_grommunio_mailbox_storage_quota_limit.labels(*labels).set(
+                    storagequotalimit
+                )
+                self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(*labels).set(
+                    prohibitreceivequota
+                )
+                self.gauge_grommunio_mailbox_prohibit_send_quota.labels(*labels).set(
+                    prohibitsendquota
+                )
+                self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(
+                    creationtime
+                )
+                self.gauge_grommunio_mailbox_out_of_office_state.labels(*labels).set(
+                    outofofficestate
+                )
         except (TypeError, AttributeError, KeyError, IndexError, ValueError) as exc:
             logger.error(
                 f"Cannot iter over mailbox properties while updating gauges: {exc}"
