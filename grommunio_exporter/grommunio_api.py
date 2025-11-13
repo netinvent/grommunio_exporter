@@ -41,7 +41,9 @@ class GrommunioExporter:
         self.hostname = hostname
 
         self.mysql_cnx = mysql.connector.connect(**mysql_config)
-
+        # Avoid query cache
+        self.mysql_cnx.autocommit = True
+        
         self.mysql_cursor = self.mysql_cnx.cursor(dictionary=True)
 
         # API status variable
