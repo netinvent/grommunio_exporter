@@ -9,7 +9,7 @@ __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
 __copyright__ = "Copyright (C) 2024-2025 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2025110701"
+__build__ = "2025111301"
 
 from typing import List
 import logging
@@ -24,7 +24,7 @@ from grommunio_exporter.__version__ import __version__
 
 # from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily, REGISTRY
 
-from grommunio_exporter.__debug__ import _DEBUG
+from grommunio_exporter.__debug__ import _DEBUG, fmt_json
 
 
 logger = logging.getLogger()
@@ -380,16 +380,16 @@ if __name__ == "__main__":
 
     print("Getting Grommunio versions")
     versions = api.get_grommunio_versions()
-    print(versions)
+    print(fmt_json(versions))
     mailboxes = api.get_mailboxes()
     print("Found mailboxes:")
-    print(mailboxes)
+    print(fmt_json(mailboxes))
     usernames = api.get_usernames_from_mailboxes(mailboxes)
     print("Found usernames:")
-    print(usernames)
+    print(fmt_json(usernames))
     mailbox_properties = api.get_mailbox_properties(usernames)
     print("Mailbox properties:")
-    print(mailbox_properties)
+    print(fmt_json(mailbox_properties))
 
     print("Updating gauges for Grommunio versions")
     api.update_grommunio_versions_gauges(versions)
