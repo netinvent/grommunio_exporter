@@ -317,17 +317,17 @@ class GrommunioExporter:
                         )
                     elif key == "storagequotalimit":
                         # Value given in KB iec, we need to convert it to bytes
-                        value = BytesConverter(f"{value} KiB")
+                        value = BytesConverter(f"{value} KiB").bytes
                         self.gauge_grommunio_mailbox_storage_quota_limit.labels(
                             *labels
                         ).set(value)
                     elif key == "prohibitreceivequota":
-                        value = BytesConverter(f"{value} KiB")
+                        value = BytesConverter(f"{value} KiB").bytes
                         self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(
                             *labels
                         ).set(value)
                     elif key == "prohibitsendquota":
-                        value = BytesConverter(f"{value} KiB")
+                        value = BytesConverter(f"{value} KiB").bytes
                         self.gauge_grommunio_mailbox_prohibit_send_quota.labels(
                             *labels
                         ).set(value)
