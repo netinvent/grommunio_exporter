@@ -303,10 +303,19 @@ class GrommunioExporter:
         try:
             for mbox_prop in mailbox_properties:
                 username = "none"
+                messagesizeextended = 0.0
+                storagequotalimit = 0.0
+                prohibitreceivequota = 0.0
+                prohibitsendquota = 0.0
+                creationtime = 0.0
+                outofofficestate = 0
                 labels = (self.hostname, "no_domain", "none")
                 for key, value in mbox_prop.items():
                     if value is None:
                         value = 0
+                        logger.debug(
+                            f"Setting None value to 0 for key {key} and user {username}"
+                        )
                     if key == "username":
                         username = value
                         domain = self._get_domain_from_username(username)
