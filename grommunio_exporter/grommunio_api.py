@@ -43,7 +43,7 @@ class GrommunioExporter:
         self.mysql_cnx = mysql.connector.connect(**mysql_config)
         # Avoid query cache
         self.mysql_cnx.autocommit = True
-        
+
         self.mysql_cursor = self.mysql_cnx.cursor(dictionary=True)
 
         # API status variable
@@ -273,7 +273,6 @@ class GrommunioExporter:
             MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime,
             MAX(CASE WHEN user_properties.proptag = 1713176587 THEN user_properties.propval_str END) AS outofofficestate
         FROM user_properties INNER JOIN users ON user_properties.user_id=users.id
-        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995,805765184,1713176587)
         GROUP BY users.id;
 
         Produces something like:
@@ -295,7 +294,6 @@ class GrommunioExporter:
             MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime, \
             MAX(CASE WHEN user_properties.proptag = 1713176587 THEN user_properties.propval_str END) AS outofofficestate \
         FROM user_properties INNER JOIN users ON user_properties.user_id=users.id \
-        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995,805765184,1713176587) \
         GROUP BY users.id;"
         self.mysql_cursor.execute(query)
         mailbox_properties = self.mysql_cursor.fetchall()
