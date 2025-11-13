@@ -9,7 +9,7 @@ __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
 __copyright__ = "Copyright (C) 2024-2025 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2025110701"
+__build__ = "2025111301"
 
 from typing import List
 import logging
@@ -24,7 +24,7 @@ from grommunio_exporter.__version__ import __version__
 
 # from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily, REGISTRY
 
-from grommunio_exporter.__debug__ import _DEBUG
+from grommunio_exporter.__debug__ import _DEBUG, fmt_json
 
 
 logger = logging.getLogger()
@@ -41,6 +41,8 @@ class GrommunioExporter:
         self.hostname = hostname
 
         self.mysql_cnx = mysql.connector.connect(**mysql_config)
+        # Avoid query cache
+        self.mysql_cnx.autocommit = True
 
         self.mysql_cursor = self.mysql_cnx.cursor(dictionary=True)
 
@@ -271,7 +273,6 @@ class GrommunioExporter:
             MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime,
             MAX(CASE WHEN user_properties.proptag = 1713176587 THEN user_properties.propval_str END) AS outofofficestate
         FROM user_properties INNER JOIN users ON user_properties.user_id=users.id
-        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995,805765184,1713176587)
         GROUP BY users.id;
 
         Produces something like:
@@ -293,7 +294,6 @@ class GrommunioExporter:
             MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime, \
             MAX(CASE WHEN user_properties.proptag = 1713176587 THEN user_properties.propval_str END) AS outofofficestate \
         FROM user_properties INNER JOIN users ON user_properties.user_id=users.id \
-        WHERE user_properties.proptag IN (1718222851,235405332,1073020931,1718484995,805765184,1713176587) \
         GROUP BY users.id;"
         self.mysql_cursor.execute(query)
         mailbox_properties = self.mysql_cursor.fetchall()
@@ -303,44 +303,55 @@ class GrommunioExporter:
         try:
             for mbox_prop in mailbox_properties:
                 username = "none"
+                messagesizeextended = 0.0
+                storagequotalimit = 0.0
+                prohibitreceivequota = 0.0
+                prohibitsendquota = 0.0
+                creationtime = 0.0
+                outofofficestate = 0
                 labels = (self.hostname, "no_domain", "none")
                 for key, value in mbox_prop.items():
                     if value is None:
                         value = 0
+                        logger.debug(
+                            f"Setting None value to 0 for key {key} and user {username}"
+                        )
                     if key == "username":
                         username = value
                         domain = self._get_domain_from_username(username)
                         labels = (self.hostname, domain, username)
                     if key == "messagesizeextended":
-                        self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(
-                            value
-                        )
+                        messagesizeextended = float(value)
                     elif key == "storagequotalimit":
                         # Value given in KB iec, we need to convert it to bytes
-                        value = BytesConverter(f"{value} KiB")
-                        self.gauge_grommunio_mailbox_storage_quota_limit.labels(
-                            *labels
-                        ).set(value)
+                        storagequotalimit = BytesConverter(f"{value} KiB").bytes
                     elif key == "prohibitreceivequota":
-                        value = BytesConverter(f"{value} KiB")
-                        self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(
-                            *labels
-                        ).set(value)
+                        prohibitreceivequota = BytesConverter(f"{value} KiB").bytes
                     elif key == "prohibitsendquota":
-                        value = BytesConverter(f"{value} KiB")
-                        self.gauge_grommunio_mailbox_prohibit_send_quota.labels(
-                            *labels
-                        ).set(value)
+                        prohibitsendquota = BytesConverter(f"{value} KiB").bytes
                     elif key == "creationtime":
                         # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
-                        value = convert_from_file_time(value).timestamp()
-                        self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(
-                            value
-                        )
+                        creationtime = convert_from_file_time(value).timestamp()
                     elif key == "outofofficestate":
-                        self.gauge_grommunio_mailbox_out_of_office_state.labels(
-                            *labels
-                        ).set(value)
+                        outofofficestate = float(value)
+                self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(
+                    messagesizeextended
+                )
+                self.gauge_grommunio_mailbox_storage_quota_limit.labels(*labels).set(
+                    storagequotalimit
+                )
+                self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(*labels).set(
+                    prohibitreceivequota
+                )
+                self.gauge_grommunio_mailbox_prohibit_send_quota.labels(*labels).set(
+                    prohibitsendquota
+                )
+                self.gauge_grommunio_mailbox_creation_time.labels(*labels).set(
+                    creationtime
+                )
+                self.gauge_grommunio_mailbox_out_of_office_state.labels(*labels).set(
+                    outofofficestate
+                )
         except (TypeError, AttributeError, KeyError, IndexError, ValueError) as exc:
             logger.error(
                 f"Cannot iter over mailbox properties while updating gauges: {exc}"
@@ -380,16 +391,16 @@ if __name__ == "__main__":
 
     print("Getting Grommunio versions")
     versions = api.get_grommunio_versions()
-    print(versions)
+    print(fmt_json(versions))
     mailboxes = api.get_mailboxes()
     print("Found mailboxes:")
-    print(mailboxes)
+    print(fmt_json(mailboxes))
     usernames = api.get_usernames_from_mailboxes(mailboxes)
     print("Found usernames:")
-    print(usernames)
+    print(fmt_json(usernames))
     mailbox_properties = api.get_mailbox_properties(usernames)
     print("Mailbox properties:")
-    print(mailbox_properties)
+    print(fmt_json(mailbox_properties))
 
     print("Updating gauges for Grommunio versions")
     api.update_grommunio_versions_gauges(versions)
