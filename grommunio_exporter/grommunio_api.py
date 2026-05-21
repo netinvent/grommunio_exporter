@@ -9,7 +9,7 @@ __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
 __copyright__ = "Copyright (C) 2024-2025 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2025091001"
+__build__ = "2026052101"
 
 from typing import List
 from ofunctions.misc import fn_name
@@ -254,7 +254,7 @@ class GrommunioExporter:
         awk_cmd = r"""awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { print substr($0, 2) } END {printf "]]\n"}'"""
         grommunio_shell_cmds = ""
         for username in usernames:
-            grommunio_shell_cmds += f"exmdb {username} store get --format json-kv\n"
+            grommunio_shell_cmds += f"exmdb {username} store get messagesizeextended storagequotalimit prohibitreceivequota prohibitsendquota creationtime --format json-kv\n"
         cmd = f"{self.cli_binary} shell -x << EOF 2>/dev/null | {awk_cmd} \n{grommunio_shell_cmds}\nEOF"
 
         exit_code, result = command_runner(cmd, shell=True)
