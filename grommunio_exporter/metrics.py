@@ -12,7 +12,6 @@ __license__ = "GPL-3.0-only"
 __build__ = "2026060501"
 
 
-from typing import Optional
 import sys
 from logging import getLogger
 from pathlib import Path
@@ -99,8 +98,6 @@ if mysql_port:
     mysql_config["port"] = mysql_port
 
 app = FastAPIOffline()
-metrics_app = prometheus_client.make_asgi_app()
-# app.mount("/metrics", metrics_app)
 security = HTTPBasic()
 
 api = GrommunioExporter(
@@ -184,7 +181,7 @@ async def api_root(auth=Depends(auth_scheme)) -> dict:
 
 
 @app.get("/metrics")
-async def get_metrics(auth=Depends(auth_scheme)) -> Optional[Response]:
+async def get_metrics(auth=Depends(auth_scheme)) -> Response:
     try:
         run_metrics()
     except Exception as exc:
