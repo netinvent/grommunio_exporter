@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Installer script for grommunio_exporter on Grommunio OpenSuSE 15.6 based appliances
-# Script 2025111201
+# Script 2026060501
 
 LOG_FILE=./install_grommunio_exporter.log
 SCRIPT_GOOD=true
@@ -27,16 +27,21 @@ function log_quit {
 }
 
 log "#### Setup grommunio_exporter"
-if grep 'PRETTY_NAME="openSUSE Leap 16.0"' /etc/os-release > /dev/null; then
+if grep '^ID_LIKE=.*opensuse.*' in /etc/os-release > /dev/null; then
+    log "Running on openSUSE"
+else
+    log_quit "Unsupported OS. This installer is only for openSUSE Leap 15.6 and 16.0" "ERROR"
+fi
+if grep 'VERSION_ID="16.0"' /etc/os-release > /dev/null; then
     log "Running on openSUSE Leap 16.0"
     PYTHON_BIN=python3
-elif grep 'PRETTY_NAME="openSUSE Leap 15.6"' /etc/os-release > /dev/null; then
+elif grep 'VERSION_ID="15.6"' /etc/os-release > /dev/null; then
     log "Running on openSUSE Leap 15.6"
     log "Installing Python 3.11 if not present"
     zypper install -y python311
     PYTHON_BIN=python3.11
 else
-    log_quit "Unsupported OS. This installer is only for openSUSE Leap 15.6 and 16.0" "ERROR"
+    log_quit "Unsupported OS version. This installer is only for openSUSE Leap 15.6 and 16.0" "ERROR"
 fi
 
 log "Setting up venv environment"
