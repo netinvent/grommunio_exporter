@@ -1,4 +1,4 @@
-command_runner>=1.7.3
+command_runner>=1.7.6
 ruamel.yaml
 ofunctions.logger_utils>=2.4.0
 gunicorn
