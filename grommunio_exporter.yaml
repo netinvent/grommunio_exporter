@@ -7,12 +7,13 @@ http_server:
   username:
   password:
 grommunio:
-  # Mysql settings, see /etc/gromox/mysql_adaptor.cfg
-  mysql_username: grommunio
-  mysql_password: database_password
-  mysql_database: grommunio
-  mysql_host: localhost
+  # Mysql settings, default read from /etc/gromox/mysql_adaptor.cfg
+  mysql_username: 
+  mysql_password: 
+  mysql_database: 
+  mysql_host: 
   mysql_port: 3306
   # Optional overrides
-  gromox_binary: /usr/libexec/gromox/zcore
+  cli_binary:
+  gromox_binary:
   alternative_hostname:
