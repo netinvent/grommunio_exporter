@@ -7,9 +7,9 @@ __appname__ = "grommunio_exporter"
 __author__ = "Orsiris de Jong"
 __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
-__copyright__ = "Copyright (C) 2024-2025 NetInvent"
+__copyright__ = "Copyright (C) 2024-2026 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2025111301"
+__build__ = "2026060501"
 
 from typing import List
 import logging
@@ -283,20 +283,27 @@ class GrommunioExporter:
         """
 
         mailbox_properties = {}
+        awk_cmd = r"""awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { print substr($0, 2) } END {printf "]]\n"}'"""
+        grommunio_shell_cmds = ""
+        for username in usernames:
+            grommunio_shell_cmds += f"exmdb {username} store get messagesizeextended storagequotalimit prohibitreceivequota prohibitsendquota creationtime --format json-kv\n"
+        cmd = f"{self.cli_binary} shell -x << EOF 2>/dev/null | {awk_cmd} \n{grommunio_shell_cmds}\nEOF"
 
-        query = "SELECT \
-            users.id, \
-            users.username, \
-            MAX(CASE WHEN user_properties.proptag = 235405332 THEN user_properties.propval_str END) AS messagesizeextended, \
-            MAX(CASE WHEN user_properties.proptag = 1718222851 THEN user_properties.propval_str END) AS prohibitreceivequota, \
-            MAX(CASE WHEN user_properties.proptag = 1073020931 THEN user_properties.propval_str END) AS storagequotalimit, \
-            MAX(CASE WHEN user_properties.proptag = 1718484995 THEN user_properties.propval_str END) AS prohibitsendquota, \
-            MAX(CASE WHEN user_properties.proptag = 805765184 THEN user_properties.propval_str END) AS creationtime, \
-            MAX(CASE WHEN user_properties.proptag = 1713176587 THEN user_properties.propval_str END) AS outofofficestate \
-        FROM user_properties INNER JOIN users ON user_properties.user_id=users.id \
-        GROUP BY users.id;"
-        self.mysql_cursor.execute(query)
-        mailbox_properties = self.mysql_cursor.fetchall()
+        exit_code, result = command_runner(cmd, shell=True)
+        if exit_code == 0:
+            try:
+                mailbox_properties = json.loads(result)
+            except json.JSONDecodeError as exc:
+                logger.error(f"Cannot decode JSON: {exc}")
+                logger.debug("Trace:", exc_info=True)
+                self.api_status = False
+        else:
+            logger.error(
+                f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
+            )
+            self.api_status = False
+            # Since we used awk, we should definitely reset the output
+            mailbox_properties = {}
         return mailbox_properties
 
     def update_mailbox_properties_gauges(self, mailbox_properties: dict):
