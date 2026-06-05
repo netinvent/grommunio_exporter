@@ -122,7 +122,8 @@ class GrommunioExporter:
             ["hostname", "domain", "username"],
         )
 
-        # Create a metric to track time spent and requests made.
+        # Create a metric to track time spent and requests made
+        # Statement with no effect will trigger linters, but it's used to create request_processing_seconds_created metric
         Summary("request_processing_seconds", "Time spent processing request")
 
     def get_grommunio_versions(self) -> dict:
