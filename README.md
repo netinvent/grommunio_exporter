@@ -44,18 +44,17 @@ systemctl restart grommunio_exporter
 ```
 
 #### Special notes for Grommunio appliances
-Note that on Grommunio appliances based on OpenSuSE 15.6, you'll have to install pip first and update wheel package via the following commands.
-Also note that installing the requested requirements for grommunio_exporter will fail if `pip` and `wheel` package isn't up to date in the Grommunio appliance (zypper installs pip 10.0.1, and pip 21.3.1 is required). 
-Lastly, the message `pygobject 3.42.2 requires pycairo>=1.16.0, which is not installed.` can be ignored on these systems.  
+Note that on Grommunio appliances based on OpenSuSE 15.6, there may be both python 3.6 and python 3.11 installed.  
+Best way not to mess with python's grommunio environment is to build a venv environment specific to a newer python version.
 ```
-zypper install -y python3-pip
-python3 -m pip install --upgrade pip setuptools wheel
-python3 -m pip install grommunio_exporter
+zypper install python311
+python3.11 -m venv /usr/local/grommunio_exporter_venv
+/usr/local/grommunio_exporter_venv/bin/python -m pip install --upgrade pip setuptools wheel
+/usr/local/grommunio_exporter_venv/bin/python -m pip install grommunio_exporter
 ```
 
-Installing via pip will create `/usr/bin/grommunio_exporter`. This file can be run manually for testing purposes, or run as service.
+Running the exporter can be done via `/usr/local/grommunio_exporter_venv/bin/grommunio_exporter`. This file can be run manually for testing purposes, or run as service.
 
-The exporter needs to be installed on the host that has grommunio-admin cli interface.  
 Once installed, you can create a systemd service file from the [systemd unit file](examples/grommunio_exporter.service) in the example dir.  
 Once the service is running, you may query the exporter with:
 ```
@@ -90,7 +89,7 @@ The following metrics are per user and have labels `hostname,domain,username`:
 - `grommunio_mailbox_prohibit_receive_limit`
 - `grommunio_mailbox_prohibit_send_quota`
 - `grommunio_mailbox_creation_time`
-- `gauge_grommunio_mailbox_out_of_office_state`
+- `grommunio_mailbox_out_of_office_state`
 
 
 ### Alert rules:
@@ -117,7 +116,7 @@ This file can override the following:
 - http listen port
 - http authentication
 - grommunio hostname
-
+- mysql database settings
 
 ### Troubleshooting
 
@@ -132,38 +131,6 @@ You can set the following scrape settings in the prometheus job:
 ```
 scrape_interval: 300s
 scrape_timeout: 240s
-```
-
-### Troubleshooting python pip on Grommunio Appliances
-
-There maybe errors with python 3.6 pip that is installed in Grommunio appliances based on OpenSuse 15.5/15.6.
-If running pip shows the following error:
-```
-Traceback (most recent call last):
-  File "/usr/lib64/python3.6/runpy.py", line 193, in _run_module_as_main
-    "__main__", mod_spec)
-  File "/usr/lib64/python3.6/runpy.py", line 85, in _run_code
-    exec(code, run_globals)
-  File "/usr/lib/python3.6/site-packages/pip/__main__.py", line 16, in <module>
-    from pip._internal.cli.main import main as _main  # isort:skip # noqa
-  File "/usr/lib/python3.6/site-packages/pip/_internal/cli/main.py", line 10, in <module>
-    from pip._internal.cli.autocompletion import autocomplete
-  File "/usr/lib/python3.6/site-packages/pip/_internal/cli/autocompletion.py", line 9, in <module>
-    from pip._internal.cli.main_parser import create_main_parser
-  File "/usr/lib/python3.6/site-packages/pip/_internal/cli/main_parser.py", line 7, in <module>
-    from pip._internal.cli import cmdoptions
-  File "/usr/lib/python3.6/site-packages/pip/_internal/cli/cmdoptions.py", line 25, in <module>
-    from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
-  File "/usr/lib/python3.6/site-packages/pip/_internal/locations/__init__.py", line 9, in <module>
-    from pip._internal.models.scheme import SCHEME_KEYS, Scheme
-ImportError: cannot import name 'SCHEME_KEYS'
-```
-
-You may want to reinstall a newer version of pip with the following command:
-```
-rm -rf /usr/lib/python3.6/site-packages/setuptools*
-rm -rf /usr/lib/python3.6/site-packages/pip*
-python3 -m ensurepip
 ```
 
 ### Misc
@@ -181,4 +148,4 @@ If the project gains some traction, we can add REST UI support.
 ### License
 
 Licensed under GPLv3.0... Contributions are welcome  
-(C) 2024 NetInvent SASU  
+(C) 2024-2025 NetInvent SASU  
