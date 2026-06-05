@@ -11,7 +11,7 @@ __copyright__ = "Copyright (C) 2024-2026 NetInvent"
 __license__ = "GPL-3.0-only"
 __build__ = "2026060501"
 
-from typing import List, Optional
+from typing import List
 import logging
 from pathlib import Path
 import re
@@ -219,7 +219,8 @@ class GrommunioExporter:
                     username = mailbox["username"]
                     domain = self._get_domain_from_username(username)
                     # address_status = 4 is shared mailbox
-                    if mailbox["address_status"] == 4:
+                    # address_status is returned by mysql wheras status is returned by grommunio-admin
+                    if mailbox["status"] == 4:
                         try:
                             per_domain_shared_mailbox_count[domain].append(username)
                         except (KeyError, AttributeError):
@@ -318,6 +319,17 @@ class GrommunioExporter:
         {'id': 1, 'username': 'user@domain.tld', 'messagesizeextended': '5025442101', 'prohibitreceivequota': None, 'storagequotalimit': '25165824', 'prohibitsendquota': None, 'creationtime': '133399826720000000'},
         {'id': 2, 'username': 'other@user.tld', 'messagesizeextended': '2778305272', 'prohibitreceivequota': '16777216', 'storagequotalimit': '18874368', 'prohibitsendquota': '15728640', 'creationtime': '133399827670000000'}
         ]
+
+        If using grommunio-admin, we can get the same data with something like:
+         # New way to transform grommunio-admin shell multiple json blocks output into json list
+        # We also need to extract the username from our query and insert it into the json... !!! horay
+        grommunio-admin shell -x << EOF 2>/dev/null | awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { print substr($0, 2) } END {printf "]]\n"}'
+
+        This will produce almost identical results, except that:
+        address_status becomes status
+        Results are wrapped into lists, eg
+        [[{'id': 1, 'username': 'user@domain.tld', 'messagesizeextended': '5025442101', 'prohibitreceivequota': None, 'storagequotalimit': '25165824', 'prohibitsendquota': None, 'creationtime': '133399826720000000'}]]
+
         """
 
         mailbox_properties = []
