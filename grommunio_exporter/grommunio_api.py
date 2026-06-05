@@ -7,9 +7,9 @@ __appname__ = "grommunio_exporter"
 __author__ = "Orsiris de Jong"
 __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
-__copyright__ = "Copyright (C) 2024-2025 NetInvent"
+__copyright__ = "Copyright (C) 2024-2026 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2026052101"
+__build__ = "2026060501"
 
 from typing import List
 from ofunctions.misc import fn_name
