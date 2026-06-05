@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Installer script for grommunio_exporter on Grommunio OpenSuSE 15.6 based appliances
-# Script 2026060501
+# Script 2026060502
 
 LOG_FILE=./install_grommunio_exporter.log
 SCRIPT_GOOD=true
@@ -47,7 +47,7 @@ fi
 log "Setting up venv environment"
 $PYTHON_BIN -m venv /usr/local/grommunio_exporter_venv || log_quit "Cannot create python venv" "ERROR"
 /usr/local/grommunio_exporter_venv/bin/python -m pip install --upgrade pip setuptools wheel || log_quit "Cannot update pip/setuptools/wheel in venv" "ERROR"
-/usr/local/grommunio_exporter_venv/bin/python -m pip install grommunio_exporter || log_quit "Cannot install grommunio_exporter in venv" "ERROR"
+/usr/local/grommunio_exporter_venv/bin/python -m pip install --upgrade grommunio_exporter || log_quit "Cannot install grommunio_exporter in venv" "ERROR"
 
 log "Setup systemd unit file"
 
