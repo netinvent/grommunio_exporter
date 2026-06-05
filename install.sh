@@ -27,12 +27,20 @@ function log_quit {
 }
 
 log "#### Setup grommunio_exporter"
-
-log "Installing Python 3.11 if not present"
-zypper install -y python311
+if grep 'PRETTY_NAME="openSUSE Leap 16.0"' /etc/os-release > /dev/null; then
+    log "Running on openSUSE Leap 16.0"
+    PYTHON_BIN=python3
+elif grep 'PRETTY_NAME="openSUSE Leap 15.6"' /etc/os-release > /dev/null; then
+    log "Running on openSUSE Leap 15.6"
+    log "Installing Python 3.11 if not present"
+    zypper install -y python311
+    PYTHON_BIN=python3.11
+else
+    log_quit "Unsupported OS. This installer is only for openSUSE Leap 15.6 and 16.0" "ERROR"
+fi
 
 log "Setting up venv environment"
-python3.11 -m venv /usr/local/grommunio_exporter_venv || log_quit "Cannot create python venv" "ERROR"
+$PYTHON_BIN -m venv /usr/local/grommunio_exporter_venv || log_quit "Cannot create python venv" "ERROR"
 /usr/local/grommunio_exporter_venv/bin/python -m pip install --upgrade pip setuptools wheel || log_quit "Cannot update pip/setuptools/wheel in venv" "ERROR"
 /usr/local/grommunio_exporter_venv/bin/python -m pip install grommunio_exporter || log_quit "Cannot install grommunio_exporter in venv" "ERROR"
 
@@ -70,12 +78,6 @@ http_server:
   username:
   password:
 grommunio:
-  # Optional overrides
-  # mysql settings, see /etc/gromox/mysql_adaptor.cfg
-  #  mysql_username: grommunio
-  #  mysql_password: database_password
-  #  mysql_database: grommunio
-  #  mysql_host: localhost
   alternative_hostname:
 EOF
 [ $? -eq 0 ] || log "Failed to setup grommunio_exporter config file" "ERROR"
