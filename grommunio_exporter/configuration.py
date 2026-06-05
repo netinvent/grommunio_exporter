@@ -7,9 +7,9 @@ __intname__ = "grommunio_exporter.__version__"
 __author__ = "Orsiris de Jong"
 __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
-__copyright__ = "Copyright (C) 2024-2025 NetInvent"
+__copyright__ = "Copyright (C) 2024-2026 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2024110801"
+__build__ = "2026060501"
 
 
 from typing import Optional, List, Any, Union
@@ -34,7 +34,11 @@ default_config_dict = {
         "no_auth": True,
         "username": None,
         "password": None,
-    }
+    },
+    "grommunio": {
+        "cli_binary": "/usr/sbin/grommunio-admin",
+        "gromox_binary": "/usr/libexec/gromox/zcore",
+    },
 }
 
 logger = getLogger()
@@ -43,7 +47,7 @@ logger = getLogger()
 # Monkeypatching ruamel.yaml ordreddict so we get to use pseudo dot notations
 # eg data.g('my.array.keys') == data['my']['array']['keys']
 # and data.s('my.array.keys', 'new_value')
-def g(self, path, sep=".", default=None, list_ok=False):
+def g(self, path, sep=".", default=None, list_ok=False) -> Any:
     """
     Getter for dot notation in an a dict/OrderedDict
     print(d.g('my.array.keys'))
@@ -61,8 +65,8 @@ ordereddict.g = g
 
 
 def convert_to_commented_map(
-    source_dict,
-):
+    source_dict: dict,
+) -> CommentedMap:
     if isinstance(source_dict, dict):
         return CommentedMap(
             {k: convert_to_commented_map(v) for k, v in source_dict.items()}
@@ -83,8 +87,11 @@ def key_should_be_encrypted(key: str, encrypted_options: List[str]):
 
 
 def crypt_config(
-    full_config: dict, aes_key: str, encrypted_options: List[str], operation: str
-):
+    full_config: CommentedMap,
+    aes_key: bytes,
+    encrypted_options: List[str],
+    operation: str,
+) -> Union[CommentedMap, bool]:
     try:
 
         def _crypt_config(key: str, value: Any) -> Any:
@@ -129,7 +136,7 @@ def crypt_config(
         return False
 
 
-def is_encrypted(full_config: dict) -> bool:
+def is_encrypted(full_config: CommentedMap) -> bool:
     is_encrypted = True
 
     def _is_encrypted(key, value) -> Any:
@@ -137,8 +144,9 @@ def is_encrypted(full_config: dict) -> bool:
 
         if key_should_be_encrypted(key, ENCRYPTED_OPTIONS):
             if value is not None:
-                if isinstance(value, str) and (
-                    not value.startswith(ID_STRING) or not value.endswith(ID_STRING)
+                if isinstance(value, (str, int, float)) and (
+                    not str(value).startswith(ID_STRING)
+                    or not str(value).endswith(ID_STRING)
                 ):
                     is_encrypted = False
         return value
@@ -152,7 +160,7 @@ def is_encrypted(full_config: dict) -> bool:
     return is_encrypted
 
 
-def _load_config_file(config_file: Path) -> Union[bool, dict]:
+def _load_config_file(config_file: Path) -> Union[bool, CommentedMap]:
     """
     Checks whether config file is valid
     """
@@ -169,7 +177,7 @@ def _load_config_file(config_file: Path) -> Union[bool, dict]:
         return False
 
 
-def load_config(config_file: Path) -> Optional[dict]:
+def load_config(config_file: Path) -> Optional[CommentedMap]:
     logger.info(f"Loading configuration file {config_file}")
 
     full_config = _load_config_file(config_file)
@@ -197,13 +205,16 @@ def load_config(config_file: Path) -> Optional[dict]:
     return convert_to_commented_map(full_config)
 
 
-def save_config(config_file: Path, full_config: dict) -> bool:
+def save_config(config_file: Path, full_config: CommentedMap) -> bool:
     try:
+        if not is_encrypted(full_config):
+            full_config = crypt_config(
+                full_config, AES_KEY, ENCRYPTED_OPTIONS, operation="encrypt"
+            )
+        if not full_config:
+            logger.critical("Cannot encrypt config file, not saving it")
+            return False
         with open(config_file, "w", encoding="utf-8") as file_handle:
-            if not is_encrypted(full_config):
-                full_config = crypt_config(
-                    full_config, AES_KEY, ENCRYPTED_OPTIONS, operation="encrypt"
-                )
             yaml = YAML(typ="rt")
             yaml.dump(full_config, file_handle)
         # Since yaml is a "pointer object", we need to decrypt after saving
@@ -216,5 +227,5 @@ def save_config(config_file: Path, full_config: dict) -> bool:
         return False
 
 
-def get_default_config():
+def get_default_config() -> CommentedMap:
     return convert_to_commented_map(default_config_dict)

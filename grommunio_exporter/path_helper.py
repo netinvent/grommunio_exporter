@@ -16,7 +16,6 @@ __build__ = "2023012201"
 import sys
 import os
 
-
 # This is the path to a onefile executable binary
 CURRENT_EXECUTABLE = os.path.abspath(sys.argv[0])
 CURRENT_DIR = os.path.dirname(CURRENT_EXECUTABLE)

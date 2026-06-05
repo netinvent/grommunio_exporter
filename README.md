@@ -10,7 +10,7 @@ Since we already have node_exporter for system metrics and postfix_exporter for 
 
 ### Requirements
 
-- Grommunio 2.x
+- Grommunio 2.x/3.x
 - python >= 3.7
 
 

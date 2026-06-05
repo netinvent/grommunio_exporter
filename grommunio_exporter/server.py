@@ -25,9 +25,9 @@ from grommunio_exporter import metrics
 logger = logger_get_logger(__appname__ + ".log", debug=_DEBUG)
 
 
-def _main():
+def _main() -> None:
     global logger
-    _DEV = os.environ.get("_DEV", False)
+    _DEV = os.environ.get("_DEV", "False").strip("'\"").lower().capitalize() == "True"
 
     parser = ArgumentParser(
         prog=f"{__appname__}",
@@ -122,33 +122,25 @@ This is free software, and you are welcome to redistribute it under certain cond
 
         server_args = {
             "workers": 4,  # Don't run multiple workers since we don't have shared variables yet (multiprocessing.cpu_count() * 2) + 1,
-            "bind": f"{listen}:{port}" if listen else "0.0.0.0:9799",
+            "bind": f"{listen}:{port}" if listen and port else "0.0.0.0:9799",
             "worker_class": "uvicorn.workers.UvicornWorker",
         }
 
-    try:
-        if _DEV or os.name == "nt":
-            uvicorn.run("grommunio_exporter.metrics:app", **server_args)
-        else:
-            StandaloneApplication(metrics.app, server_args).run()
-    except KeyboardInterrupt as exc:
-        logger.error("Program interrupted by keyoard: {}".format(exc))
-        sys.exit(200)
-    except Exception as exc:
-        logger.error("Program interrupted by error: {}".format(exc))
-        logger.critical("Trace:", exc_info=True)
-        sys.exit(201)
+    if _DEV or os.name == "nt":
+        uvicorn.run("grommunio_exporter.metrics:app", **server_args)
+    else:
+        StandaloneApplication(metrics.app, server_args).run()
 
 
-def main():
+def main() -> None:
     try:
         _main()
-        worst_error = logger.get_worst_logger_level()
+        worst_error = logger.get_worst_logger_level()  # type: ignore
         if worst_error >= logging.WARNING:
             sys.exit(worst_error)
         sys.exit(0)
     except KeyboardInterrupt as exc:
-        logger.error("Program interrupted by keyoard: {}".format(exc))
+        logger.error("Program interrupted by keyboard: {}".format(exc))
         sys.exit(200)
     except Exception as exc:
         logger.error("Program interrupted by error: {}".format(exc))

@@ -9,16 +9,16 @@ __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
 __copyright__ = "Copyright (C) 2024-2025 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2024110801"
+__build__ = "2026060501"
 
 
 import sys
 import os
-from typing import Callable
+import traceback
+from typing import Callable, Union
 from functools import wraps
 from logging import getLogger
 import json
-
 
 logger = getLogger()
 
@@ -35,13 +35,25 @@ if not __SPECIAL_DEBUG_STRING:
         sys.argv.pop(sys.argv.index("--debug"))
 
 
-if not "_DEBUG" in globals():
+if "_DEBUG" not in globals():
     _DEBUG = False
     if __SPECIAL_DEBUG_STRING:
         if __debug_os_env == __SPECIAL_DEBUG_STRING:
             _DEBUG = True
-    elif __debug_os_env.capitalize() == "True":
+    elif __debug_os_env.lower().capitalize() == "True":
         _DEBUG = True
+
+
+def exception_to_string(exc):
+    """
+    Transform a caught exception to a string
+    https://stackoverflow.com/a/37135014/2635443
+    """
+    stack = traceback.extract_stack()[:-3] + traceback.extract_tb(
+        exc.__traceback__
+    )  # add limit=??
+    pretty = traceback.format_list(stack)
+    return "".join(pretty) + "\n  {} {}".format(exc.__class__, exc)
 
 
 def catch_exceptions(fn: Callable):
@@ -57,17 +69,16 @@ def catch_exceptions(fn: Callable):
         except Exception as exc:
             # pylint: disable=E1101 (no-member)
             operation = fn.__name__
-            logger.error(f"Function {operation} failed with: {exc}")
+            logger.error(f"General catcher: Function {operation} failed with: {exc}")
             logger.error("Trace:", exc_info=True)
             return None
 
     return wrapper
 
 
-def fmt_json(js: dict):
+def fmt_json(js: Union[dict, list]) -> str:
     """
     Just a quick and dirty shorthand for pretty print which doesn't require pprint
     to be loaded
     """
-    js = json.dumps(js, indent=4)
-    return js
+    return json.dumps(js, indent=4)
