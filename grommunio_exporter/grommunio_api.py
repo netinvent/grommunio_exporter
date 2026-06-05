@@ -11,12 +11,14 @@ __copyright__ = "Copyright (C) 2024-2026 NetInvent"
 __license__ = "GPL-3.0-only"
 __build__ = "2026060501"
 
-from typing import List
+from typing import List, Optional
 import logging
 from pathlib import Path
 import re
-from prometheus_client import Summary, Gauge, Enum
-import mysql.connector
+from prometheus_client import Summary, Gauge
+
+# import mysql.connector
+import json
 from command_runner import command_runner
 from ofunctions.misc import BytesConverter
 from grommunio_exporter.filetime import convert_from_file_time
@@ -24,8 +26,7 @@ from grommunio_exporter.__version__ import __version__
 
 # from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily, REGISTRY
 
-from grommunio_exporter.__debug__ import _DEBUG, fmt_json
-
+from grommunio_exporter.__debug__ import fmt_json
 
 logger = logging.getLogger()
 
@@ -35,17 +36,22 @@ class GrommunioExporter:
     Python class to discuss with grommunio CLI
     """
 
-    def __init__(self, mysql_config: dict, gromox_binary: Path, hostname: str):
+    def __init__(
+        self, mysql_config: dict, gromox_binary: Path, cli_binary: Path, hostname: str
+    ):
         self.mysql_config = mysql_config
         self.gromox_binary = gromox_binary
+        self.cli_binary = cli_binary
         self.hostname = hostname
 
-        self.mysql_cnx = mysql.connector.connect(**mysql_config)
+        """
+        Disable Mysql support for now, see #1
+        # self.mysql_cnx = mysql.connector.connect(**mysql_config)
         # Avoid query cache
         self.mysql_cnx.autocommit = True
 
-        self.mysql_cursor = self.mysql_cnx.cursor(dictionary=True)
-
+        # self.mysql_cursor = self.mysql_cnx.cursor(dictionary=True)
+        """
         # API status variable
         self.api_status = True
 
@@ -117,39 +123,49 @@ class GrommunioExporter:
         )
 
         # Create a metric to track time spent and requests made.
-        REQUEST_TIME = Summary(
-            "request_processing_seconds", "Time spent processing request"
-        )
+        Summary("request_processing_seconds", "Time spent processing request")
 
-    def get_grommunio_versions(self):
+    def get_grommunio_versions(self) -> dict:
         versions = {
             "grommunio_exporter": __version__,
             "gromox": "unknown",
+            "grommunio_admin": "unknown",
         }
 
         cmd = f"{self.gromox_binary} --version"
-        exit_code, result = command_runner(cmd, timeout=10)
-        if exit_code == 0:
+        exit_code, result = command_runner(cmd, timeout=10)  # type: ignore
+        if exit_code == 0 and isinstance(result, str):
             version = re.search(r"gromox-zcore\s(.*)\s\(pid.*", result)
             if version:
                 version = version.group(1)
                 versions["gromox"] = version.strip()
+
+        cmd = f"{self.cli_binary} version"
+        exit_code, result = command_runner(cmd, timeout=10)  # type: ignore
+        if exit_code == 0 and isinstance(result, str):
+            versions["grommunio_admin"] = result.strip()
+
         return versions
 
     def update_grommunio_versions_gauges(self, version: dict):
         self.gauge_grommunio_exporter_version.labels(
             self.hostname, version["grommunio_exporter"]
         ).set(0)
+
         self.gauge_grommunio_gromox_version.labels(
             self.hostname, version["gromox"]
         ).set(0 if version["gromox"] != "unknown" else 1)
 
-    def _get_domain_from_username(self, username: str):
+        self.gauge_grommunio_admin_version.labels(
+            self.hostname, version["grommunio_admin"]
+        ).set(0 if version["grommunio_admin"] != "unknown" else 1)
+
+    def _get_domain_from_username(self, username: str) -> str:
         if "@" in username:
             return username.split("@")[1]
         return "no_domain"
 
-    def _get_mailboxes(self, filter_mailing_lists: bool = True):
+    def _get_mailboxes(self, filter_mailing_lists: bool = True) -> List[dict]:
         """
         Used to fetch mailboxes
 
@@ -162,8 +178,28 @@ class GrommunioExporter:
         [{'id': 0, 'username': 'admin', 'address_status': 0}, {'id': 1, 'username': 'user@domain.tld', 'address_status': 0}
         """
 
-        mailboxes = {}
+        mailboxes = []
+        if filter_mailing_lists:
+            filter = " --filter mlist="
+        else:
+            filter = ""
 
+        cmd = f"{self.cli_binary} user query{filter} --format json-structured"
+        exit_code, result = command_runner(cmd, timeout=60)  # type: ignore
+        if exit_code == 0 and isinstance(result, str):
+            try:
+                mailboxes = json.loads(result)
+            except json.JSONDecodeError as exc:
+                logger.error(f"Cannot decode JSON: {exc}")
+                logger.debug("Trace:", exc_info=True)
+                self.api_status = False
+        else:
+            logger.error(
+                f"Could not execute {cmd}: Failed with error code {exit_code}: {result}"
+            )
+            self.api_status = False
+
+        """
         query = "SELECT id, username, address_status FROM users"
         if filter_mailing_lists:
             query += " WHERE username NOT IN (SELECT listname FROM mlists);"
@@ -171,9 +207,10 @@ class GrommunioExporter:
 
         self.mysql_cursor.execute(query)
         mailboxes = self.mysql_cursor.fetchall()
+        """
         return mailboxes
 
-    def update_mailbox_gauges(self, mailboxes: dict):
+    def update_mailbox_gauges(self, mailboxes: List[dict]):
         try:
             per_domain_mailbox_count = {}
             per_domain_shared_mailbox_count = {}
@@ -208,7 +245,7 @@ class GrommunioExporter:
             logger.debug("Trace:", exc_info=True)
             self.api_status = False
 
-    def get_mailboxes(self):
+    def get_mailboxes(self) -> List[dict]:
         """
         Just a wrapper to get exceptions from threads
         """
@@ -218,6 +255,7 @@ class GrommunioExporter:
             logger.error(f"Could not get mailboxes: {exc}")
             logger.debug("Trace", exc_info=True)
             self.api_status = False
+            return []
 
     def get_usernames_from_mailboxes(
         self, mailboxes: list, filter_no_domain: bool = True
@@ -234,7 +272,7 @@ class GrommunioExporter:
             usernames.append(mailbox["username"])
         return usernames
 
-    def _get_mailbox_properties(self, usernames: List[str]):
+    def _get_mailbox_properties(self, usernames: List[str]) -> List[dict]:
         """
         In Grommunio database:
 
@@ -282,15 +320,15 @@ class GrommunioExporter:
         ]
         """
 
-        mailbox_properties = {}
+        mailbox_properties = []
         awk_cmd = r"""awk 'BEGIN {printf "[[\n"} {if ($1=="") {next}; if ($1=="exmdb") {if (first==1) { printf "],["} else {first=1}; printf "{\"username\":\""$2"\","; next}} { print substr($0, 2) } END {printf "]]\n"}'"""
         grommunio_shell_cmds = ""
         for username in usernames:
-            grommunio_shell_cmds += f"exmdb {username} store get messagesizeextended storagequotalimit prohibitreceivequota prohibitsendquota creationtime --format json-kv\n"
+            grommunio_shell_cmds += f"exmdb {username} store get messagesizeextended storagequotalimit prohibitreceivequota prohibitsendquota creationtime outofofficestate --format json-kv\n"
         cmd = f"{self.cli_binary} shell -x << EOF 2>/dev/null | {awk_cmd} \n{grommunio_shell_cmds}\nEOF"
 
-        exit_code, result = command_runner(cmd, shell=True)
-        if exit_code == 0:
+        exit_code, result = command_runner(cmd, shell=True)  # type: ignore
+        if exit_code == 0 and isinstance(result, str):
             try:
                 mailbox_properties = json.loads(result)
             except json.JSONDecodeError as exc:
@@ -303,12 +341,12 @@ class GrommunioExporter:
             )
             self.api_status = False
             # Since we used awk, we should definitely reset the output
-            mailbox_properties = {}
+            mailbox_properties = []
         return mailbox_properties
 
-    def update_mailbox_properties_gauges(self, mailbox_properties: dict):
+    def update_mailbox_properties_gauges(self, mailbox_properties: List[dict]):
         try:
-            for mbox_prop in mailbox_properties:
+            for mailbox_prop in mailbox_properties:
                 username = "none"
                 messagesizeextended = 0.0
                 storagequotalimit = 0.0
@@ -317,30 +355,31 @@ class GrommunioExporter:
                 creationtime = 0.0
                 outofofficestate = 0
                 labels = (self.hostname, "no_domain", "none")
-                for key, value in mbox_prop.items():
-                    if value is None:
-                        value = 0
-                        logger.debug(
-                            f"Setting None value to 0 for key {key} and user {username}"
-                        )
-                    if key == "username":
-                        username = value
-                        domain = self._get_domain_from_username(username)
-                        labels = (self.hostname, domain, username)
-                    if key == "messagesizeextended":
-                        messagesizeextended = float(value)
-                    elif key == "storagequotalimit":
-                        # Value given in KB iec, we need to convert it to bytes
-                        storagequotalimit = BytesConverter(f"{value} KiB").bytes
-                    elif key == "prohibitreceivequota":
-                        prohibitreceivequota = BytesConverter(f"{value} KiB").bytes
-                    elif key == "prohibitsendquota":
-                        prohibitsendquota = BytesConverter(f"{value} KiB").bytes
-                    elif key == "creationtime":
-                        # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
-                        creationtime = convert_from_file_time(value).timestamp()
-                    elif key == "outofofficestate":
-                        outofofficestate = float(value)
+                for entry in mailbox_prop:
+                    for key, value in entry.items():
+                        if value is None:
+                            value = 0
+                            logger.debug(
+                                f"Setting None value to 0 for key {key} and user {username}"
+                            )
+                        if key == "username":
+                            username = str(value)
+                            domain = self._get_domain_from_username(username)
+                            labels = (self.hostname, domain, username)
+                        if key == "messagesizeextended":
+                            messagesizeextended = float(value)
+                        elif key == "storagequotalimit":
+                            # Value given in KB iec, we need to convert it to bytes
+                            storagequotalimit = BytesConverter(f"{value} KiB").bytes
+                        elif key == "prohibitreceivequota":
+                            prohibitreceivequota = BytesConverter(f"{value} KiB").bytes
+                        elif key == "prohibitsendquota":
+                            prohibitsendquota = BytesConverter(f"{value} KiB").bytes
+                        elif key == "creationtime":
+                            # Creationtime is an 18-digit LDAP/FILETIME timestamp we need to convert first to epoch
+                            creationtime = convert_from_file_time(value).timestamp()
+                        elif key == "outofofficestate":
+                            outofofficestate = float(value)
                 self.gauge_grommunio_mailbox_messagesize.labels(*labels).set(
                     messagesizeextended
                 )
@@ -373,11 +412,12 @@ class GrommunioExporter:
             logger.error(f"Could not get mailboxes properties: {exc}")
             logger.debug("Trace", exc_info=True)
             self.api_status = False
+            return []
 
-    def api_status_reset(self):
+    def api_status_reset(self) -> None:
         self.api_status = True
 
-    def update_api_gauges(self):
+    def update_api_gauges(self) -> None:
         if self.api_status:
             self.gauge_grommunio_api_status.labels(self.hostname).set(0)
         else:
@@ -392,7 +432,8 @@ if __name__ == "__main__":
     mysql_config = load_mysql_config()
     api = GrommunioExporter(
         mysql_config=mysql_config,
-        gromox_binary="/usr/libexec/gromox/zcore",
+        gromox_binary=Path("/usr/libexec/gromox/zcore"),
+        cli_binary=Path("/usr/sbin/grommunio-admin"),
         hostname="test-script",
     )
 
@@ -401,13 +442,14 @@ if __name__ == "__main__":
     print(fmt_json(versions))
     mailboxes = api.get_mailboxes()
     print("Found mailboxes:")
-    print(fmt_json(mailboxes))
-    usernames = api.get_usernames_from_mailboxes(mailboxes)
-    print("Found usernames:")
-    print(fmt_json(usernames))
-    mailbox_properties = api.get_mailbox_properties(usernames)
-    print("Mailbox properties:")
-    print(fmt_json(mailbox_properties))
+    if mailboxes:
+        print(fmt_json(mailboxes))
+        usernames = api.get_usernames_from_mailboxes(mailboxes)
+        print("Found usernames:")
+        print(fmt_json(usernames))
+        mailbox_properties = api.get_mailbox_properties(usernames)
+        print("Mailbox properties:")
+        print(fmt_json(mailbox_properties))
 
     print("Updating gauges for Grommunio versions")
     api.update_grommunio_versions_gauges(versions)

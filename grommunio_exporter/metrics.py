@@ -7,11 +7,12 @@ __appname__ = "grommunio_exporter"
 __author__ = "Orsiris de Jong"
 __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"
-__copyright__ = "Copyright (C) 2024-2025 NetInvent"
+__copyright__ = "Copyright (C) 2024-2026 NetInvent"
 __license__ = "GPL-3.0-only"
-__build__ = "2025110701"
+__build__ = "2026060501"
 
 
+from typing import Optional
 import sys
 from logging import getLogger
 from pathlib import Path
@@ -39,8 +40,11 @@ parser.add_argument(
     dest="config_file",
     type=str,
     default=None,
-    required=None,
+    required=False,
     help="Path to optional grommunio_exporter.yaml file",
+)
+parser.add_argument(
+    "--dev", action="store_true", help="Run with uvicorn in devel environment"
 )
 args = parser.parse_args()
 
@@ -60,9 +64,13 @@ else:
 http_username = config_dict.g("http_server.username")
 http_password = config_dict.g("http_server.password")
 http_no_auth = config_dict.g("http_server.no_auth")
+
+cli_binary = config_dict.g("grommunio.cli_binary")
+cli_binary = Path(cli_binary) if cli_binary else Path("/usr/sbin/grommunio-admin")
 gromox_binary = config_dict.g("grommunio.gromox_binary")
-if not gromox_binary:
-    gromox_binary = "/usr/libexec/gromox/zcore"
+gromox_binary = (
+    Path(gromox_binary) if gromox_binary else Path("/usr/libexec/gromox/zcore")
+)
 hostname = config_dict.g("grommunio.alternative_hostname")
 if not hostname:
     try:
@@ -76,11 +84,7 @@ mysql_username = config_dict.g("grommunio.mysql_username")
 mysql_password = config_dict.g("grommunio.mysql_password")
 mysql_database = config_dict.g("grommunio.mysql_database")
 mysql_host = config_dict.g("grommunio.mysql_host")
-if not mysql_host:
-    mysql_host = "localhost"
 mysql_port = config_dict.g("grommunio.mysql_port")
-if not mysql_port:
-    mysql_port = 3306
 
 mysql_config = load_mysql_config()
 if mysql_username:
@@ -96,15 +100,18 @@ if mysql_port:
 
 app = FastAPIOffline()
 metrics_app = prometheus_client.make_asgi_app()
-app.mount("/metrics", metrics_app)
+# app.mount("/metrics", metrics_app)
 security = HTTPBasic()
 
 api = GrommunioExporter(
-    mysql_config=mysql_config, gromox_binary=gromox_binary, hostname=hostname
+    mysql_config=mysql_config,
+    gromox_binary=gromox_binary,
+    cli_binary=cli_binary,
+    hostname=hostname,
 )
 
 
-def run_metrics():
+def run_metrics() -> None:
     """
     Actual function that runs the requests
     """
@@ -129,11 +136,17 @@ def run_metrics():
         logger.error("Trace", exc_info=True)
 
 
-def anonymous_auth():
+def anonymous_auth() -> str:
     return "anonymous"
 
 
-def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
+def get_current_username(credentials: HTTPBasicCredentials = Depends(security)) -> str:
+    if not http_username or not http_password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="HTTP authentication is not properly configured",
+            headers={"WWW-Authenticate": "Basic"},
+        )
     current_username_bytes = credentials.username.encode("utf8")
     correct_username_bytes = http_username.encode("utf-8")
     is_correct_username = secrets.compare_digest(
@@ -166,12 +179,12 @@ except (KeyError, AttributeError, TypeError):
 
 
 @app.get("/")
-async def api_root(auth=Depends(auth_scheme)):
+async def api_root(auth=Depends(auth_scheme)) -> dict:
     return {"app": __appname__, "version": __version__}
 
 
 @app.get("/metrics")
-async def get_metrics(auth=Depends(auth_scheme)):
+async def get_metrics(auth=Depends(auth_scheme)) -> Optional[Response]:
     try:
         run_metrics()
     except Exception as exc:
