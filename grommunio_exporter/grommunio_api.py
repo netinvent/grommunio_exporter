@@ -220,7 +220,7 @@ class GrommunioExporter:
                     username = mailbox["username"]
                     domain = self._get_domain_from_username(username)
                     # address_status = 4 is shared mailbox
-                    # address_status is returned by mysql wheras status is returned by grommunio-admin
+                    # address_status is returned by mysql whereas status is returned by grommunio-admin
                     if mailbox["status"] == 4:
                         try:
                             per_domain_shared_mailbox_count[domain].append(username)
