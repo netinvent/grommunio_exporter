@@ -58,7 +58,7 @@ Running the exporter can be done via `/usr/local/grommunio_exporter_venv/bin/gro
 Once installed, you can create a systemd service file from the [systemd unit file](examples/grommunio_exporter.service) in the example dir.  
 Once the service is running, you may query the exporter with:
 ```
-curl http://localhost:9769/metrics
+curl http://localhost:9799/metrics
 ```
 
 ### Firewall
