@@ -3,7 +3,7 @@
 #
 # This file is part of grommunio_exporter
 
-__intname__ = "grommunio_exporter.__version__"
+__intname__ = "grommunio_exporter.configuration"
 __author__ = "Orsiris de Jong"
 __site__ = "https://www.github.com/netinvent/grommunio_exporter"
 __description__ = "Grommunio Prometheus data exporter"

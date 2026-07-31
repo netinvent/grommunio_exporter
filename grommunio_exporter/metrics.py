@@ -26,7 +26,7 @@ import socket
 from grommunio_exporter.__version__ import __version__
 from grommunio_exporter.configuration import load_config, get_default_config
 from grommunio_exporter.grommunio_api import GrommunioExporter
-from grommunio_exporter.mysql_config import load_mysql_config
+# from grommunio_exporter.mysql_config import load_mysql_config
 
 logger = getLogger()
 
@@ -79,6 +79,8 @@ if not hostname:
     except socket.gaierror:
         hostname = "not_resolvable_hostname"
         logger.error("Cannot resolve hostname, using 'not_resolvable_hostname'")
+
+"""
 mysql_username = config_dict.g("grommunio.mysql_username")
 mysql_password = config_dict.g("grommunio.mysql_password")
 mysql_database = config_dict.g("grommunio.mysql_database")
@@ -96,12 +98,13 @@ if mysql_host:
     mysql_config["host"] = mysql_host
 if mysql_port:
     mysql_config["port"] = mysql_port
+"""
 
 app = FastAPIOffline()
 security = HTTPBasic()
 
 api = GrommunioExporter(
-    mysql_config=mysql_config,
+    #mysql_config=mysql_config,
     gromox_binary=gromox_binary,
     cli_binary=cli_binary,
     hostname=hostname,

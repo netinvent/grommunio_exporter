@@ -2,14 +2,14 @@
 Description=Grommunio Exporter
 After=syslog.target
 After=network.target
-AssertFileIsExecutable=/usr/bin/grommunio_exporter
+AssertFileIsExecutable=/usr/local/grommunio_exporter_venv/bin/grommunio_exporter
 
 [Service]
 Type=simple
 # You may prefer to use a different user or group on your system.
 #User=grommunio
 #Group=grommunio
-ExecStart=/usr/bin/grommunio_exporter
+ExecStart=/usr/local/grommunio_exporter_venv/bin/grommunio_exporter
 Restart=always
 RestartSec=60
 

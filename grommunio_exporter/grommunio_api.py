@@ -98,7 +98,7 @@ class GrommunioExporter:
             ["hostname", "domain", "username"],
         )
 
-        self.gauge_grommunio_mailbox_prohibit_reveive_quota = Gauge(
+        self.gauge_grommunio_mailbox_prohibit_receive_quota = Gauge(
             "grommunio_mailbox_prohibit_receive_limit",
             "Mailbox prohibit receive quota",
             ["hostname", "domain", "username"],
@@ -399,7 +399,7 @@ class GrommunioExporter:
                 self.gauge_grommunio_mailbox_storage_quota_limit.labels(*labels).set(
                     storagequotalimit
                 )
-                self.gauge_grommunio_mailbox_prohibit_reveive_quota.labels(*labels).set(
+                self.gauge_grommunio_mailbox_prohibit_receive_quota.labels(*labels).set(
                     prohibitreceivequota
                 )
                 self.gauge_grommunio_mailbox_prohibit_send_quota.labels(*labels).set(
