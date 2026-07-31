@@ -27,8 +27,8 @@ function log_quit {
 }
 
 log "#### Setup grommunio_exporter"
-if grep '^ID_LIKE=.*opensuse.*' in /etc/os-release > /dev/null; then
-    log "Running on openSUSE"
+if grep '^ID_LIKE=.*suse.*' /etc/os-release > /dev/null; then
+    log "Running on Suse"
 else
     log_quit "Unsupported OS. This installer is only for openSUSE Leap 15.6 and 16.0" "ERROR"
 fi
