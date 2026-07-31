@@ -44,7 +44,7 @@ systemctl restart grommunio_exporter
 ```
 
 #### Special notes for Grommunio appliances
-Note that on Grommunio appliances based on OpenSuSE 15.6, there may be both python 3.6 and python 3.11 installed.  
+Note that on Grommunio appliances based lower than OpenSUSE 16.0, there may be both python 3.6 and python 3.11 installed.  
 Best way not to mess with python's grommunio environment is to build a venv environment specific to a newer python version.
 ```
 zypper install python311
